@@ -1,0 +1,789 @@
+openapi: 3.0.3
+info:
+  title: GoTogether API
+  description: Travel-sharing PWA API for short, local trips
+  version: 1.0.0
+  contact:
+    name: GoTogether Team
+    email: support@gotogether.app
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.gotogether.app
+    description: Production server
+
+paths:
+  /api/auth/otp:
+    post:
+      summary: Send OTP for authentication
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                  example: "+919876543210"
+              required: [phone]
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent to +919876543210"
+                  request_id:
+                    type: string
+                    example: "req_123456789"
+        '400':
+          description: Invalid phone number
+        '429':
+          description: Too many requests
+
+  /api/auth/verify:
+    post:
+      summary: Verify OTP and get JWT token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  example: "+919876543210"
+                otp:
+                  type: string
+                  example: "123456"
+                request_id:
+                  type: string
+                  example: "req_123456789"
+              required: [phone, otp, request_id]
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                  token_type:
+                    type: string
+                    example: "bearer"
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid OTP or request_id
+        '401':
+          description: OTP expired
+
+  /api/trips:
+    post:
+      summary: Create a new trip
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCreate'
+      responses:
+        '201':
+          description: Trip created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          description: Invalid trip data
+        '401':
+          description: Unauthorized
+
+    get:
+      summary: Get user's trips
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, cancelled]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [driver, passenger]
+      responses:
+        '200':
+          description: List of trips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+
+  /api/trips/search:
+    get:
+      summary: Search for matching trips
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: origin_lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            example: 22.253
+        - name: origin_lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            example: 84.901
+        - name: dest_lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            example: 22.270
+        - name: dest_lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            example: 84.900
+        - name: departure_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: "2025-11-05T08:00:00+05:30"
+        - name: max_origin_distance
+          in: query
+          schema:
+            type: number
+            default: 2.0
+            example: 2.0
+        - name: max_dest_distance
+          in: query
+          schema:
+            type: number
+            default: 3.0
+            example: 3.0
+        - name: time_window_minutes
+          in: query
+          schema:
+            type: integer
+            default: 15
+            example: 15
+      responses:
+        '200':
+          description: Matching trips found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripMatch'
+                  total:
+                    type: integer
+                    example: 5
+        '400':
+          description: Invalid search parameters
+
+  /api/trips/{trip_id}:
+    get:
+      summary: Get trip details
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Trip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetail'
+        '404':
+          description: Trip not found
+
+    patch:
+      summary: Update trip details
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripUpdate'
+      responses:
+        '200':
+          description: Trip updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '403':
+          description: Not authorized to update this trip
+        '404':
+          description: Trip not found
+
+  /api/trips/{trip_id}/join:
+    post:
+      summary: Request to join a trip
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seats_requested:
+                  type: integer
+                  minimum: 1
+                  example: 1
+                message:
+                  type: string
+                  example: "Hi! I'd like to join your trip."
+              required: [seats_requested]
+      responses:
+        '201':
+          description: Join request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripMember'
+        '400':
+          description: Invalid request or trip full
+        '409':
+          description: Already requested or member of this trip
+
+  /api/trips/{trip_id}/members/{member_id}/approve:
+    post:
+      summary: Approve join request
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: member_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Member approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripMember'
+        '403':
+          description: Not authorized
+        '404':
+          description: Trip or member not found
+
+  /api/payment/split:
+    post:
+      summary: Calculate and initiate payment split
+      tags: [Payment]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trip_id:
+                  type: string
+                  format: uuid
+                total_fare:
+                  type: number
+                  format: float
+                  example: 100.0
+                currency:
+                  type: string
+                  default: "INR"
+                  example: "INR"
+              required: [trip_id, total_fare]
+      responses:
+        '201':
+          description: Payment split calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSplit'
+        '400':
+          description: Invalid payment data
+        '404':
+          description: Trip not found
+
+  /api/payment/{payment_id}/webhook:
+    post:
+      summary: Payment gateway webhook
+      tags: [Payment]
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payment gateway webhook payload
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook payload
+
+  /api/trips/{trip_id}/rate:
+    post:
+      summary: Rate trip participants
+      tags: [Ratings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ratings:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                        format: uuid
+                      rating:
+                        type: integer
+                        minimum: 1
+                        maximum: 5
+                      comment:
+                        type: string
+                        maxLength: 500
+                    required: [user_id, rating]
+              required: [ratings]
+      responses:
+        '201':
+          description: Ratings submitted
+        '400':
+          description: Invalid rating data
+        '403':
+          description: Not authorized to rate this trip
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+          example: "+919876543210"
+        name:
+          type: string
+          example: "John Doe"
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        rating:
+          type: number
+          format: float
+          example: 4.5
+        total_trips:
+          type: integer
+          example: 25
+        created_at:
+          type: string
+          format: date-time
+
+    TripCreate:
+      type: object
+      properties:
+        origin_lat:
+          type: number
+          format: float
+          example: 22.253
+        origin_lng:
+          type: number
+          format: float
+          example: 84.901
+        origin_address:
+          type: string
+          example: "NIT Rourkela Main Gate"
+        dest_lat:
+          type: number
+          format: float
+          example: 22.270
+        dest_lng:
+          type: number
+          format: float
+          example: 84.900
+        dest_address:
+          type: string
+          example: "Rourkela Railway Station"
+        departure_time:
+          type: string
+          format: date-time
+          example: "2025-11-05T08:00:00+05:30"
+        total_seats:
+          type: integer
+          minimum: 1
+          maximum: 8
+          example: 3
+        fare_per_person:
+          type: number
+          format: float
+          example: 33.33
+        vehicle_type:
+          type: string
+          enum: [car, auto, bike]
+          example: "car"
+        description:
+          type: string
+          maxLength: 500
+          example: "Daily commute to railway station"
+      required: [origin_lat, origin_lng, dest_lat, dest_lng, departure_time, total_seats, fare_per_person, vehicle_type]
+
+    Trip:
+      allOf:
+        - $ref: '#/components/schemas/TripCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            driver_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [active, full, completed, cancelled]
+              example: "active"
+            available_seats:
+              type: integer
+              example: 2
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    TripMatch:
+      allOf:
+        - $ref: '#/components/schemas/Trip'
+        - type: object
+          properties:
+            driver:
+              $ref: '#/components/schemas/User'
+            origin_distance:
+              type: number
+              format: float
+              example: 1.2
+            dest_distance:
+              type: number
+              format: float
+              example: 0.8
+            time_difference_minutes:
+              type: integer
+              example: 5
+            match_score:
+              type: number
+              format: float
+              example: 0.85
+
+    TripDetail:
+      allOf:
+        - $ref: '#/components/schemas/Trip'
+        - type: object
+          properties:
+            driver:
+              $ref: '#/components/schemas/User'
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/TripMember'
+            payment:
+              $ref: '#/components/schemas/Payment'
+              nullable: true
+
+    TripUpdate:
+      type: object
+      properties:
+        departure_time:
+          type: string
+          format: date-time
+        total_seats:
+          type: integer
+          minimum: 1
+          maximum: 8
+        fare_per_person:
+          type: number
+          format: float
+        description:
+          type: string
+          maxLength: 500
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+
+    TripMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        seats_requested:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [pending, approved, rejected, completed]
+          example: "pending"
+        message:
+          type: string
+          nullable: true
+        joined_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        total_fare:
+          type: number
+          format: float
+          example: 100.0
+        currency:
+          type: string
+          example: "INR"
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          example: "pending"
+        gateway:
+          type: string
+          enum: [razorpay, stripe]
+          example: "razorpay"
+        gateway_payment_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    PaymentSplit:
+      type: object
+      properties:
+        payment:
+          $ref: '#/components/schemas/Payment'
+        splits:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+                format: uuid
+              user:
+                $ref: '#/components/schemas/User'
+              amount:
+                type: number
+                format: float
+                example: 33.33
+              status:
+                type: string
+                enum: [pending, paid, failed]
+                example: "pending"
+        checkout_url:
+          type: string
+          format: uri
+          example: "https://checkout.razorpay.com/v1/checkout.js"
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        rater_id:
+          type: string
+          format: uuid
+        rated_user_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          nullable: true
+          example: "Great co-passenger!"
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid request"
+        message:
+          type: string
+          example: "The provided data is invalid"
+        details:
+          type: object
+          nullable: true
+
+# WebSocket Events (not part of OpenAPI spec, but documented here)
+# 
+# WebSocket URL: /ws/trips/{trip_id}/chat
+# 
+# Client -> Server Events:
+# {
+#   "type": "message",
+#   "content": "Hello everyone!",
+#   "timestamp": "2025-11-05T08:00:00Z"
+# }
+# 
+# {
+#   "type": "location_update",
+#   "lat": 22.253,
+#   "lng": 84.901,
+#   "timestamp": "2025-11-05T08:00:00Z"
+# }
+# 
+# Server -> Client Events:
+# {
+#   "type": "message",
+#   "id": "msg_123",
+#   "user_id": "user_456",
+#   "user_name": "John Doe",
+#   "content": "Hello everyone!",
+#   "timestamp": "2025-11-05T08:00:00Z"
+# }
+# 
+# {
+#   "type": "member_joined",
+#   "user_id": "user_789",
+#   "user_name": "Jane Smith",
+#   "timestamp": "2025-11-05T08:00:00Z"
+# }
+# 
+# {
+#   "type": "trip_update",
+#   "field": "status",
+#   "value": "completed",
+#   "timestamp": "2025-11-05T08:00:00Z"
+# }
