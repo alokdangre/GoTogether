@@ -1,5 +1,10 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
 from typing import Optional
+
+from pydantic_settings import BaseSettings
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -35,9 +40,19 @@ class Settings(BaseSettings):
     
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    
+
+    # Email / SMTP
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_use_tls: bool = True
+    smtp_from_email: Optional[str] = None
+    smtp_from_name: Optional[str] = None
+
     class Config:
-        env_file = ".env"
+        env_file = str(BASE_DIR / ".env")
+        env_file_encoding = "utf-8"
 
 
 settings = Settings()
