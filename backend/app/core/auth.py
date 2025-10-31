@@ -1,5 +1,7 @@
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
@@ -8,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import get_db
+from .email import EmailDeliveryError, send_email
 from ..models.user import User
 
 # Password hashing
@@ -23,33 +26,60 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
-# Email verification (mock)
+# Email verification
 
 
-class MockEmailVerificationService:
-    """Mock email verification service for development/testing."""
+class EmailVerificationService:
+    """Email verification token management and delivery."""
 
     def __init__(self):
-        self._pending_tokens = {}
+        self._pending_tokens: dict[str, dict[str, datetime]] = {}
 
     async def send_token(self, email: str) -> str:
-        token = f"email_{datetime.utcnow().timestamp()}"
+        token = secrets.token_urlsafe(16)
+        expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+        subject = "Verify your email for GoTogether"
+        verification_code = token
+        text_body = (
+            "Thanks for signing up for GoTogether!\n\n"
+            f"Use the verification code below within 30 minutes to confirm your email address:\n\n"
+            f"    {verification_code}\n\n"
+            "If you did not request this, you can safely ignore this email."
+        )
+        html_body = (
+            "<p>Thanks for signing up for GoTogether!</p>"
+            "<p>Use the verification code below within 30 minutes to confirm your email address:</p>"
+            f"<p style=\"font-size:18px;font-weight:bold;letter-spacing:2px;\">{verification_code}</p>"
+            "<p>If you did not request this, you can safely ignore this email.</p>"
+        )
+
+        try:
+            await send_email(email, subject, text_body, html_body)
+        except EmailDeliveryError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email",
+            ) from exc
+
         self._pending_tokens[token] = {
-            "email": email,
-            "expires_at": datetime.utcnow() + timedelta(minutes=10),
+            "email": email.lower(),
+            "expires_at": expires_at,
         }
-        print(f"[MOCK] Email verification token for {email}: {token}")
         return token
 
     async def verify_token(self, email: str, token: str) -> bool:
         data = self._pending_tokens.get(token)
         if not data:
             return False
-        if data["email"].lower() != email.lower():
+
+        if data["email"] != email.lower():
             return False
+
         if datetime.utcnow() > data["expires_at"]:
             del self._pending_tokens[token]
             return False
+
         del self._pending_tokens[token]
         return True
 
@@ -165,4 +195,4 @@ class MockOTPService:
 
 # Global service instances
 otp_service = MockOTPService()
-email_verification_service = MockEmailVerificationService()
+email_verification_service = EmailVerificationService()
