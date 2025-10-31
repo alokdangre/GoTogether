@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
+from ..core.config import settings
 from ..core.auth import (
     otp_service,
     email_verification_service,
@@ -114,6 +115,55 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.phone})
     return Token(access_token=token, user=UserSchema.from_orm(user))
+
+
+@router.post("/email/send", response_model=dict)
+async def send_email_verification(
+    request: EmailVerificationRequest,
+    db: Session = Depends(get_db),
+):
+    """Send an email verification token to the user's email."""
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email does not exist",
+        )
+
+    token = await email_verification_service.send_token(request.email)
+
+    response = {"message": f"Verification email sent to {request.email}"}
+    if settings.debug:
+        # In development, surface the token for convenience
+        response["debug_token"] = token
+    return response
+
+
+@router.post("/email/verify", response_model=dict)
+async def verify_email_token(
+    request: EmailVerificationVerify,
+    db: Session = Depends(get_db),
+):
+    """Verify an email using the token issued via /email/send."""
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email does not exist",
+        )
+
+    is_valid = await email_verification_service.verify_token(request.email, request.token)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired token",
+        )
+
+    user.is_email_verified = True
+    user.is_verified = user.is_phone_verified or user.is_email_verified
+    db.commit()
+
+    return {"message": "Email verified successfully"}
 
 
 @router.post("/login", response_model=Token)
