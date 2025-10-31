@@ -10,8 +10,49 @@ from .config import settings
 from .database import get_db
 from ..models.user import User
 
-# Password hashing (not used for OTP auth, but useful for future features)
+# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+# Email verification (mock)
+
+
+class MockEmailVerificationService:
+    """Mock email verification service for development/testing."""
+
+    def __init__(self):
+        self._pending_tokens = {}
+
+    async def send_token(self, email: str) -> str:
+        token = f"email_{datetime.utcnow().timestamp()}"
+        self._pending_tokens[token] = {
+            "email": email,
+            "expires_at": datetime.utcnow() + timedelta(minutes=10),
+        }
+        print(f"[MOCK] Email verification token for {email}: {token}")
+        return token
+
+    async def verify_token(self, email: str, token: str) -> bool:
+        data = self._pending_tokens.get(token)
+        if not data:
+            return False
+        if data["email"].lower() != email.lower():
+            return False
+        if datetime.utcnow() > data["expires_at"]:
+            del self._pending_tokens[token]
+            return False
+        del self._pending_tokens[token]
+        return True
+
 
 # JWT token security
 security = HTTPBearer()
@@ -122,5 +163,6 @@ class MockOTPService:
         return True
 
 
-# Global OTP service instance
+# Global service instances
 otp_service = MockOTPService()
+email_verification_service = MockEmailVerificationService()
