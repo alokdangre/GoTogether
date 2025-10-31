@@ -5,7 +5,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # App
     app_name: str = "GoTogether API"
-    debug: bool = False
+    debug: bool = True
     version: str = "1.0.0"
     
     # Database
