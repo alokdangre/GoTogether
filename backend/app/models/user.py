@@ -7,10 +7,14 @@ class User(BaseModel):
     __tablename__ = "users"
     
     phone = Column(String(20), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)
+    hashed_password = Column(String(255), nullable=True)
     name = Column(String(100), nullable=True)
     avatar_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    is_phone_verified = Column(Boolean, default=False)
+    is_email_verified = Column(Boolean, default=False)
     
     # Computed fields (updated by triggers/background jobs)
     rating = Column(Float, default=0.0)
