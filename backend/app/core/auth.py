@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -198,6 +198,44 @@ async def get_current_driver(
         )
 
     return driver
+
+
+async def get_current_identity(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> Tuple[str, Union[User, Driver]]:
+    """Resolve the current authenticated identity (user or driver)."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    phone = verify_token(credentials.credentials)
+    if phone is not None:
+        user = db.query(User).filter(User.phone == phone).first()
+        if user is None:
+            raise credentials_exception
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Inactive user"
+            )
+        return ("user", user)
+
+    driver_id = verify_driver_token(credentials.credentials)
+    if driver_id is not None:
+        driver = db.query(Driver).filter(Driver.id == driver_id).first()
+        if driver is None:
+            raise credentials_exception
+        if not driver.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Inactive driver"
+            )
+        return ("driver", driver)
+
+    raise credentials_exception
 
 
 # Mock OTP service for development

@@ -37,3 +37,5 @@ class Driver(BaseModel):
 
     # Relationships
     trips = relationship("Trip", back_populates="driver")
+    sent_ratings = relationship("Rating", back_populates="rater_driver", foreign_keys="Rating.rater_driver_id")
+    received_ratings = relationship("Rating", back_populates="rated_driver", foreign_keys="Rating.rated_driver_id")
