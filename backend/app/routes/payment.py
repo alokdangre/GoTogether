@@ -4,8 +4,9 @@ from sqlalchemy import and_
 from typing import List
 
 from ..core.database import get_db
-from ..core.auth import get_current_user
+from ..core.auth import get_current_user, get_current_driver
 from ..models.user import User
+from ..models.driver import Driver
 from ..models.trip import Trip, TripMember, MemberStatus
 from ..models.payment import Payment, PaymentSplit, PaymentStatus, PaymentGateway, SplitStatus
 from ..schemas.payment import PaymentCreate, Payment as PaymentSchema, PaymentSplit as PaymentSplitSchema
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/api/payment", tags=["Payment"])
 @router.post("/split", response_model=PaymentSplitSchema, status_code=status.HTTP_201_CREATED)
 async def create_payment_split(
     payment_data: PaymentCreate,
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
     """Calculate and initiate payment split for a trip"""
@@ -28,7 +29,7 @@ async def create_payment_split(
         )
     
     # Only driver can initiate payment
-    if trip.driver_id != current_user.id:
+    if trip.driver_id != current_driver.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only trip driver can initiate payment"
@@ -42,18 +43,17 @@ async def create_payment_split(
             detail="Payment already exists for this trip"
         )
     
-    # Get all approved members (including driver)
+    # Get all approved passenger members
     approved_members = db.query(TripMember).filter(
         and_(
             TripMember.trip_id == trip.id,
             TripMember.status == MemberStatus.APPROVED
         )
     ).all()
-    
-    # Include driver in the split
-    all_participants = [current_user] + [member.user for member in approved_members]
-    total_participants = len(all_participants)
-    
+
+    all_passengers = [member.user for member in approved_members]
+    total_participants = len(all_passengers)
+
     if total_participants == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -81,7 +81,7 @@ async def create_payment_split(
     
     # Create payment splits
     splits = []
-    for participant in all_participants:
+    for participant in all_passengers:
         split = PaymentSplit(
             payment_id=payment.id,
             user_id=participant.id,

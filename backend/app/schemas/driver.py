@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 
 class DriverBase(BaseModel):
@@ -20,7 +20,7 @@ class DriverBase(BaseModel):
 
 class DriverCreate(DriverBase):
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$')
-    email: Optional[str] = Field(None, max_length=255)
+    email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8, max_length=128)
     license_number: str = Field(..., max_length=100)
     vehicle_plate_number: str = Field(..., max_length=50)
@@ -28,7 +28,7 @@ class DriverCreate(DriverBase):
 
 class DriverUpdate(DriverBase):
     phone: Optional[str] = Field(None, pattern=r'^\+[1-9]\d{1,14}$')
-    email: Optional[str] = Field(None, max_length=255)
+    email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
@@ -50,3 +50,15 @@ class Driver(DriverBase):
 
     class Config:
         from_attributes = True
+
+
+class DriverLoginRequest(BaseModel):
+    phone: Optional[str] = Field(None, pattern=r'^\+[1-9]\d{1,14}$')
+    email: Optional[EmailStr] = None
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class DriverToken(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    driver: Driver

@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 import geohash2
 
 from ..core.database import get_db
-from ..core.auth import get_current_user
+from ..core.auth import get_current_user, get_current_driver
 from ..models.user import User
+from ..models.driver import Driver
 from ..models.trip import Trip, TripMember, TripStatus, MemberStatus
 from ..schemas.trip import (
     TripCreate, Trip as TripSchema, TripWithDriver, TripDetail, 
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/api/trips", tags=["Trips"])
 @router.post("", response_model=TripWithDriver, status_code=status.HTTP_201_CREATED)
 async def create_trip(
     trip_data: TripCreate,
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
     """Create a new trip"""
@@ -34,7 +35,7 @@ async def create_trip(
     dest_geohash = encode_geohash(Location(trip_data.dest_lat, trip_data.dest_lng))
     
     trip = Trip(
-        driver_id=current_user.id,
+        driver_id=current_driver.id,
         origin_lat=trip_data.origin_lat,
         origin_lng=trip_data.origin_lng,
         origin_address=trip_data.origin_address,
@@ -64,42 +65,46 @@ async def create_trip(
 @router.get("", response_model=List[TripWithDriver])
 async def get_user_trips(
     status: Optional[TripStatus] = None,
-    role: Optional[str] = Query(None, regex="^(driver|passenger)$"),
+    role: Optional[str] = Query(None, regex="^(passenger)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user's trips (as driver or passenger)"""
-    query = db.query(Trip)
-    
     if role == "driver":
-        query = query.filter(Trip.driver_id == current_user.id)
-    elif role == "passenger":
-        # Get trips where user is a member
-        member_trip_ids = db.query(TripMember.trip_id).filter(
-            and_(
-                TripMember.user_id == current_user.id,
-                TripMember.status == MemberStatus.APPROVED
-            )
-        ).subquery()
-        query = query.filter(Trip.id.in_(member_trip_ids))
-    else:
-        # Get all trips (driver or passenger)
-        member_trip_ids = db.query(TripMember.trip_id).filter(
-            and_(
-                TripMember.user_id == current_user.id,
-                TripMember.status == MemberStatus.APPROVED
-            )
-        ).subquery()
-        query = query.filter(
-            or_(
-                Trip.driver_id == current_user.id,
-                Trip.id.in_(member_trip_ids)
-            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use driver authentication to view driver trips",
         )
+
+    query = db.query(Trip)
+
+    member_trip_ids = db.query(TripMember.trip_id).filter(
+        and_(
+            TripMember.user_id == current_user.id,
+            TripMember.status == MemberStatus.APPROVED
+        )
+    ).subquery()
+    query = query.filter(Trip.id.in_(member_trip_ids))
     
     if status:
         query = query.filter(Trip.status == status)
     
+    trips = query.order_by(Trip.departure_time.desc()).all()
+    return [TripWithDriver.from_orm(trip) for trip in trips]
+
+
+@router.get("/driver", response_model=List[TripWithDriver])
+async def get_driver_trips(
+    status: Optional[TripStatus] = None,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
+    """List trips created by the authenticated driver."""
+    query = db.query(Trip).filter(Trip.driver_id == current_driver.id)
+
+    if status:
+        query = query.filter(Trip.status == status)
+
     trips = query.order_by(Trip.departure_time.desc()).all()
     return [TripWithDriver.from_orm(trip) for trip in trips]
 
@@ -139,7 +144,6 @@ async def search_trips(
         and_(
             Trip.status == TripStatus.ACTIVE,
             Trip.available_seats > 0,
-            Trip.driver_id != current_user.id,  # Don't match own trips
             Trip.departure_time.between(time_min, time_max),
             or_(
                 Trip.origin_geohash.like(f"{gh}%") for gh in origin_geohashes[:3]  # Limit for performance
@@ -207,7 +211,7 @@ async def get_trip(
 async def update_trip(
     trip_id: str,
     trip_update: TripUpdate,
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
     """Update trip details (driver only)"""
@@ -218,7 +222,7 @@ async def update_trip(
             detail="Trip not found"
         )
     
-    if trip.driver_id != current_user.id:
+    if trip.driver_id != current_driver.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this trip"
@@ -312,7 +316,7 @@ async def join_trip(
 async def approve_member(
     trip_id: str,
     member_id: str,
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
     """Approve join request (driver only)"""
@@ -323,7 +327,7 @@ async def approve_member(
             detail="Trip not found"
         )
     
-    if trip.driver_id != current_user.id:
+    if trip.driver_id != current_driver.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to approve members"
