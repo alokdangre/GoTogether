@@ -13,7 +13,7 @@ from .core.redis import get_redis, close_redis
 from .models.chat import ChatMessage
 from .models.trip import Trip, TripMember, MemberStatus
 from .models.user import User
-from .routes import auth_router, trips_router, payment_router, ratings_router
+from .routes import auth_router, drivers_router, trips_router, payment_router, ratings_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -35,6 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(drivers_router)
 app.include_router(trips_router)
 app.include_router(payment_router)
 app.include_router(ratings_router)
