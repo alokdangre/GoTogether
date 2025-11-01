@@ -1,53 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..core.auth import get_current_user
+from ..core.auth import get_current_driver, get_password_hash
 from ..core.database import get_db
 from ..models.driver import Driver
-from ..models.user import User
-from ..schemas.driver import Driver as DriverSchema, DriverCreate, DriverUpdate
+from ..schemas.driver import Driver as DriverSchema, DriverUpdate
 
 router = APIRouter(prefix="/api/drivers", tags=["Drivers"])
 
 
 @router.get("/me", response_model=DriverSchema)
 async def get_my_driver_profile(
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db),
 ):
-    """Return the logged-in user's driver profile."""
-    driver = db.query(Driver).filter(Driver.user_id == current_user.id).first()
-    if not driver:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver profile not found")
-    return driver
-
-
-@router.post("", response_model=DriverSchema, status_code=status.HTTP_201_CREATED)
-async def create_driver_profile(
-    payload: DriverCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Create a driver profile for the current user."""
-    existing = db.query(Driver).filter(Driver.user_id == current_user.id).first()
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Driver profile already exists")
-
-    driver = Driver(user_id=current_user.id, **payload.dict())
-    db.add(driver)
-    db.commit()
-    db.refresh(driver)
-    return driver
+    """Return the authenticated driver's profile."""
+    return db.query(Driver).filter(Driver.id == current_driver.id).first()
 
 
 @router.patch("/me", response_model=DriverSchema)
-async def update_driver_profile(
+async def update_my_driver_profile(
     payload: DriverUpdate,
-    current_user: User = Depends(get_current_user),
+    current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db),
 ):
-    """Update the current user's driver profile."""
-    driver = db.query(Driver).filter(Driver.user_id == current_user.id).first()
+    """Update the authenticated driver's profile."""
+    driver = db.query(Driver).filter(Driver.id == current_driver.id).first()
     if not driver:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver profile not found")
 
@@ -59,8 +37,26 @@ async def update_driver_profile(
             detail="Driver verification can only be updated by administrators",
         )
 
+    if "phone" in update_data and update_data["phone"] != driver.phone:
+        if db.query(Driver).filter(Driver.phone == update_data["phone"]).first():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone already in use")
+
+    if "email" in update_data and update_data["email"] and update_data["email"] != driver.email:
+        if db.query(Driver).filter(Driver.email == update_data["email"]).first():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
+
+    if "is_active" in update_data and not update_data["is_active"] and driver.is_active:
+        # allow driver to deactivate themselves
+        driver.is_active = False
+        update_data.pop("is_active")
+
+    new_password = update_data.pop("password", None)
+
     for field, value in update_data.items():
         setattr(driver, field, value)
+
+    if new_password:
+        driver.hashed_password = get_password_hash(new_password)
 
     db.commit()
     db.refresh(driver)
