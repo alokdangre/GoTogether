@@ -13,17 +13,17 @@ from .database import get_db
 from .email import EmailDeliveryError, send_email
 from ..models.user import User
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing (PBKDF2-SHA256 avoids bcrypt backend issues/length limits)
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt"""
+    """Hash a password using PBKDF2-SHA256"""
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
+    """Verify a PBKDF2-SHA256 hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 # Email verification
