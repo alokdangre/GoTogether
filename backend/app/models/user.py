@@ -27,7 +27,6 @@ class User(BaseModel):
     sent_ratings = relationship("Rating", back_populates="rater", foreign_keys="Rating.rater_id")
     received_ratings = relationship("Rating", back_populates="rated_user", foreign_keys="Rating.rated_user_id")
     chat_messages = relationship("ChatMessage", back_populates="user")
-    driver_profile = relationship("Driver", back_populates="user", uselist=False)
     
     def __repr__(self):
         return f"<User(phone={self.phone}, name={self.name})>"
