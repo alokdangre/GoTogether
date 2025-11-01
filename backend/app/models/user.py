@@ -22,7 +22,6 @@ class User(BaseModel):
     total_ratings = Column(Integer, default=0)
     
     # Relationships
-    created_trips = relationship("Trip", back_populates="driver", foreign_keys="Trip.driver_id")
     trip_memberships = relationship("TripMember", back_populates="user")
     sent_ratings = relationship("Rating", back_populates="rater", foreign_keys="Rating.rater_id")
     received_ratings = relationship("Rating", back_populates="rated_user", foreign_keys="Rating.rated_user_id")

@@ -2,7 +2,9 @@ from sqlalchemy import Column, String, Float, Integer, DateTime, Text, ForeignKe
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
+
 from .base import BaseModel
+from .driver import Driver
 
 
 class TripStatus(PyEnum):
@@ -29,7 +31,7 @@ class Trip(BaseModel):
     __tablename__ = "trips"
     
     # Driver
-    driver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    driver_id = Column(UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False)
     
     # Route
     origin_lat = Column(Float, nullable=False)
@@ -54,7 +56,7 @@ class Trip(BaseModel):
     status = Column(Enum(TripStatus), default=TripStatus.ACTIVE, index=True)
     
     # Relationships
-    driver = relationship("User", back_populates="created_trips", foreign_keys=[driver_id])
+    driver = relationship("Driver", back_populates="trips", foreign_keys=[driver_id])
     members = relationship("TripMember", back_populates="trip", cascade="all, delete-orphan")
     payment = relationship("Payment", back_populates="trip", uselist=False)
     ratings = relationship("Rating", back_populates="trip", cascade="all, delete-orphan")
