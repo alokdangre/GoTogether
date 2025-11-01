@@ -5,6 +5,7 @@ from enum import Enum
 import uuid
 
 from .user import User
+from .driver import Driver
 
 
 class VehicleType(str, Enum):
@@ -94,7 +95,7 @@ class Trip(TripBase):
 
 
 class TripWithDriver(Trip):
-    driver: User
+    driver: Driver
 
 
 class TripDetail(TripWithDriver):
