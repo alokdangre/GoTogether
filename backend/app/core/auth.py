@@ -12,6 +12,7 @@ from .config import settings
 from .database import get_db
 from .email import EmailDeliveryError, send_email
 from ..models.user import User
+from ..models.driver import Driver
 
 # Password hashing (PBKDF2-SHA256 avoids bcrypt backend issues/length limits)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -86,29 +87,59 @@ class EmailVerificationService:
 
 # JWT token security
 security = HTTPBearer()
+driver_security = HTTPBearer()
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create a JWT access token"""
+def _create_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    
+
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    return encoded_jwt
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create a JWT access token for riders/users"""
+    to_encode = data.copy()
+    to_encode.setdefault("scope", "user")
+    return _create_token(to_encode, expires_delta)
+
+
+def create_driver_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create a JWT access token for drivers"""
+    to_encode = data.copy()
+    to_encode.setdefault("scope", "driver")
+    return _create_token(to_encode, expires_delta)
 
 
 def verify_token(token: str) -> Optional[str]:
     """Verify JWT token and return user phone"""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        scope = payload.get("scope", "user")
+        if scope != "user":
+            return None
         phone: str = payload.get("sub")
         if phone is None:
             return None
         return phone
+    except JWTError:
+        return None
+
+
+def verify_driver_token(token: str) -> Optional[str]:
+    """Verify driver JWT token and return driver ID"""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("scope") != "driver":
+            return None
+        driver_id: str = payload.get("sub")
+        if driver_id is None:
+            return None
+        return driver_id
     except JWTError:
         return None
 
@@ -139,6 +170,34 @@ async def get_current_user(
         )
     
     return user
+
+
+async def get_current_driver(
+    credentials: HTTPAuthorizationCredentials = Depends(driver_security),
+    db: Session = Depends(get_db)
+) -> Driver:
+    """Get current authenticated driver from JWT token"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    driver_id = verify_driver_token(credentials.credentials)
+    if driver_id is None:
+        raise credentials_exception
+
+    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    if driver is None:
+        raise credentials_exception
+
+    if not driver.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive driver"
+        )
+
+    return driver
 
 
 # Mock OTP service for development
