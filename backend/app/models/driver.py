@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
@@ -7,12 +8,7 @@ from .base import BaseModel
 class Driver(BaseModel):
     __tablename__ = "drivers"
 
-    # Auth & contact
-    phone = Column(String(20), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=True)
-    hashed_password = Column(String(255), nullable=False)
-    name = Column(String(100), nullable=True)
-    avatar_url = Column(String(500), nullable=True)
+    id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
 
     # Status flags
     is_active = Column(Boolean, default=True)
@@ -21,13 +17,13 @@ class Driver(BaseModel):
     deactivated_at = Column(DateTime(timezone=True), nullable=True)
 
     # Vehicle & license details
-    license_number = Column(String(100), unique=True, nullable=True)
+    license_number = Column(String(100), nullable=True)
     license_document_url = Column(String(500), nullable=True)
     vehicle_type = Column(String(50), nullable=True)
     vehicle_make = Column(String(100), nullable=True)
     vehicle_model = Column(String(100), nullable=True)
     vehicle_color = Column(String(50), nullable=True)
-    vehicle_plate_number = Column(String(50), unique=True, nullable=True)
+    vehicle_plate_number = Column(String(50), nullable=True)
     vehicle_document_url = Column(String(500), nullable=True)
 
     # Metrics
@@ -36,6 +32,5 @@ class Driver(BaseModel):
     total_ratings = Column(Integer, default=0)
 
     # Relationships
+    user = relationship("User", back_populates="driver_profile")
     trips = relationship("Trip", back_populates="driver")
-    sent_ratings = relationship("Rating", back_populates="rater_driver", foreign_keys="Rating.rater_driver_id")
-    received_ratings = relationship("Rating", back_populates="rated_driver", foreign_keys="Rating.rated_driver_id")
