@@ -3,9 +3,6 @@ from typing import Optional
 from datetime import datetime
 import uuid
 
-from .driver import Driver as DriverSchema
-
-
 class UserBase(BaseModel):
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Phone number in E.164 format")
     email: Optional[str] = Field(None, max_length=255)
@@ -33,7 +30,6 @@ class User(UserBase):
     total_trips: int
     total_ratings: int
     created_at: datetime
-    driver_profile: Optional[DriverSchema] = None
     
     class Config:
         from_attributes = True
