@@ -6,7 +6,6 @@ import uuid
 from pydantic import BaseModel, Field
 
 from .user import User
-from .driver import Driver
 
 
 class RatingTargetType(str, Enum):
@@ -31,10 +30,8 @@ class Rating(BaseModel):
     rating: int
     comment: Optional[str]
     created_at: datetime
-    rater_user: Optional[User] = None
-    rater_driver: Optional[Driver] = None
-    rated_user: Optional[User] = None
-    rated_driver: Optional[Driver] = None
+    rater: User
+    rated: User
 
     class Config:
         from_attributes = True

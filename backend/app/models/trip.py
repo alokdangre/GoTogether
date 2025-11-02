@@ -56,7 +56,7 @@ class Trip(BaseModel):
     status = Column(Enum(TripStatus), default=TripStatus.ACTIVE, index=True)
     
     # Relationships
-    driver = relationship("User", foreign_keys=[driver_id])
+    driver = relationship("User", back_populates="created_trips", foreign_keys=[driver_id])
     members = relationship("TripMember", back_populates="trip", cascade="all, delete-orphan")
     payment = relationship("Payment", back_populates="trip", uselist=False)
     ratings = relationship("Rating", back_populates="trip", cascade="all, delete-orphan")

@@ -6,14 +6,19 @@ from datetime import datetime, timedelta
 import geohash2
 
 from ..core.database import get_db
-from ..core.auth import get_current_user, get_current_driver
+from ..core.auth import get_current_user, require_driver_user
 from ..models.user import User
-from ..models.driver import Driver
 from ..models.trip import Trip, TripMember, TripStatus, MemberStatus
 from ..schemas.trip import (
-    TripCreate, Trip as TripSchema, TripWithDriver, TripDetail, 
-    TripMemberCreate, TripMember as TripMemberSchema, TripUpdate,
-    TripSearch, TripMatch
+    TripCreate,
+    Trip as TripSchema,
+    TripWithDriver,
+    TripDetail,
+    TripMemberCreate,
+    TripMember as TripMemberSchema,
+    TripUpdate,
+    TripSearch,
+    TripMatch,
 )
 from ..utils.matching import (
     Location, TripQuery, TripCandidate, find_matching_trips,
@@ -26,7 +31,7 @@ router = APIRouter(prefix="/api/trips", tags=["Trips"])
 @router.post("", response_model=TripWithDriver, status_code=status.HTTP_201_CREATED)
 async def create_trip(
     trip_data: TripCreate,
-    current_driver: Driver = Depends(get_current_driver),
+    current_driver: User = Depends(require_driver_user),
     db: Session = Depends(get_db)
 ):
     """Create a new trip"""
@@ -96,7 +101,7 @@ async def get_user_trips(
 @router.get("/driver", response_model=List[TripWithDriver])
 async def get_driver_trips(
     status: Optional[TripStatus] = None,
-    current_driver: Driver = Depends(get_current_driver),
+    current_driver: User = Depends(require_driver_user),
     db: Session = Depends(get_db),
 ):
     """List trips created by the authenticated driver."""
@@ -211,7 +216,7 @@ async def get_trip(
 async def update_trip(
     trip_id: str,
     trip_update: TripUpdate,
-    current_driver: Driver = Depends(get_current_driver),
+    current_driver: User = Depends(require_driver_user),
     db: Session = Depends(get_db)
 ):
     """Update trip details (driver only)"""
@@ -316,7 +321,7 @@ async def join_trip(
 async def approve_member(
     trip_id: str,
     member_id: str,
-    current_driver: Driver = Depends(get_current_driver),
+    current_driver: User = Depends(require_driver_user),
     db: Session = Depends(get_db)
 ):
     """Approve join request (driver only)"""
