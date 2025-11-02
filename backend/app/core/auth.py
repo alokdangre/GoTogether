@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -11,8 +11,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .database import get_db
 from .email import EmailDeliveryError, send_email
-from ..models.user import User
-from ..models.driver import Driver
+from ..models.user import User, UserRole
 
 # Password hashing (PBKDF2-SHA256 avoids bcrypt backend issues/length limits)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -87,7 +86,6 @@ class EmailVerificationService:
 
 # JWT token security
 security = HTTPBearer()
-driver_security = HTTPBearer()
 
 
 def _create_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -102,44 +100,20 @@ def _create_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create a JWT access token for riders/users"""
+    """Create a JWT access token for authenticated users with role metadata."""
     to_encode = data.copy()
-    to_encode.setdefault("scope", "user")
     return _create_token(to_encode, expires_delta)
 
 
-def create_driver_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create a JWT access token for drivers"""
-    to_encode = data.copy()
-    to_encode.setdefault("scope", "driver")
-    return _create_token(to_encode, expires_delta)
-
-
-def verify_token(token: str) -> Optional[str]:
-    """Verify JWT token and return user phone"""
+def verify_token(token: str) -> Optional[Tuple[str, Optional[str]]]:
+    """Verify JWT token and return (user_id, role)."""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        scope = payload.get("scope", "user")
-        if scope != "user":
+        user_id: Optional[str] = payload.get("sub")
+        if user_id is None:
             return None
-        phone: str = payload.get("sub")
-        if phone is None:
-            return None
-        return phone
-    except JWTError:
-        return None
-
-
-def verify_driver_token(token: str) -> Optional[str]:
-    """Verify driver JWT token and return driver ID"""
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        if payload.get("scope") != "driver":
-            return None
-        driver_id: str = payload.get("sub")
-        if driver_id is None:
-            return None
-        return driver_id
+        role = payload.get("role")
+        return user_id, role
     except JWTError:
         return None
 
@@ -155,14 +129,15 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    phone = verify_token(credentials.credentials)
-    if phone is None:
+    verified = verify_token(credentials.credentials)
+    if verified is None:
         raise credentials_exception
-    
-    user = db.query(User).filter(User.phone == phone).first()
+
+    user_id, _role = verified
+    user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise credentials_exception
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,70 +147,57 @@ async def get_current_user(
     return user
 
 
-async def get_current_driver(
-    credentials: HTTPAuthorizationCredentials = Depends(driver_security),
-    db: Session = Depends(get_db)
-) -> Driver:
-    """Get current authenticated driver from JWT token"""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    driver_id = verify_driver_token(credentials.credentials)
-    if driver_id is None:
-        raise credentials_exception
-
-    driver = db.query(Driver).filter(Driver.id == driver_id).first()
-    if driver is None:
-        raise credentials_exception
-
-    if not driver.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive driver"
-        )
-
-    return driver
-
-
-async def get_current_identity(
+async def get_current_user_with_role(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
-) -> Tuple[str, Union[User, Driver]]:
-    """Resolve the current authenticated identity (user or driver)."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+) -> Tuple[User, Optional[str]]:
+    """Return the authenticated user together with the role encoded in the token."""
+    verified = verify_token(credentials.credentials)
+    if verified is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    phone = verify_token(credentials.credentials)
-    if phone is not None:
-        user = db.query(User).filter(User.phone == phone).first()
-        if user is None:
-            raise credentials_exception
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Inactive user"
-            )
-        return ("user", user)
+    user_id, role_claim = verified
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    driver_id = verify_driver_token(credentials.credentials)
-    if driver_id is not None:
-        driver = db.query(Driver).filter(Driver.id == driver_id).first()
-        if driver is None:
-            raise credentials_exception
-        if not driver.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Inactive driver"
-            )
-        return ("driver", driver)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
+        )
 
-    raise credentials_exception
+    return user, role_claim
+
+
+async def require_driver_user(
+    user_with_role: Tuple[User, Optional[str]] = Depends(get_current_user_with_role)
+) -> User:
+    user, role_claim = user_with_role
+    # Determine effective role: use claim if present, otherwise user record
+    effective_role = role_claim or (user.role.value if isinstance(user.role, UserRole) else user.role)
+
+    if effective_role == UserRole.RIDER.value and user.role == UserRole.RIDER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Driver privileges required"
+        )
+
+    if user.role not in (UserRole.DRIVER, UserRole.BOTH) or user.driver_profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Driver profile is required"
+        )
+
+    return user
 
 
 # Mock OTP service for development
