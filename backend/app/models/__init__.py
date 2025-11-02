@@ -1,5 +1,6 @@
 from .user import User
 from .driver import Driver
+from .rider import Rider
 from .trip import Trip, TripMember
 from .payment import Payment, PaymentSplit
 from .rating import Rating
@@ -14,4 +15,5 @@ __all__ = [
     "PaymentSplit",
     "Rating",
     "ChatMessage",
+    "Rider",
 ]

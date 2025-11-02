@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 
 from .base import BaseModel
-from .driver import Driver
+from .user import User
 
 
 class TripStatus(PyEnum):
@@ -30,8 +30,8 @@ class MemberStatus(PyEnum):
 class Trip(BaseModel):
     __tablename__ = "trips"
     
-    # Driver
-    driver_id = Column(UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False)
+    # Driver (references users.id)
+    driver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     # Route
     origin_lat = Column(Float, nullable=False)
@@ -56,7 +56,7 @@ class Trip(BaseModel):
     status = Column(Enum(TripStatus), default=TripStatus.ACTIVE, index=True)
     
     # Relationships
-    driver = relationship("Driver", back_populates="trips", foreign_keys=[driver_id])
+    driver = relationship("User", foreign_keys=[driver_id])
     members = relationship("TripMember", back_populates="trip", cascade="all, delete-orphan")
     payment = relationship("Payment", back_populates="trip", uselist=False)
     ratings = relationship("Rating", back_populates="trip", cascade="all, delete-orphan")
