@@ -17,7 +17,7 @@ class SignUpRequest(BaseModel):
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$')
     email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8, max_length=128)
-    name: Optional[str] = Field(None, max_length=100)
+    name: str = Field(..., max_length=100)
 
 
 class LoginRequest(BaseModel):
