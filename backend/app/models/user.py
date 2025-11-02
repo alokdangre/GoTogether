@@ -1,6 +1,15 @@
-from sqlalchemy import Column, String, Float, Integer, Boolean
+from enum import Enum as PyEnum
+
+from sqlalchemy import Column, String, Float, Integer, Boolean, Enum
 from sqlalchemy.orm import relationship
+
 from .base import BaseModel
+
+
+class UserRole(PyEnum):
+    RIDER = "rider"
+    DRIVER = "driver"
+    BOTH = "both"
 
 
 class User(BaseModel):
@@ -15,6 +24,7 @@ class User(BaseModel):
     is_verified = Column(Boolean, default=False)
     is_phone_verified = Column(Boolean, default=False)
     is_email_verified = Column(Boolean, default=False)
+    role = Column(Enum(UserRole), default=UserRole.RIDER, nullable=False)
     
     # Computed fields (updated by triggers/background jobs)
     rating = Column(Float, default=0.0)
@@ -26,6 +36,8 @@ class User(BaseModel):
     sent_ratings = relationship("Rating", back_populates="rater_user", foreign_keys="Rating.rater_user_id")
     received_ratings = relationship("Rating", back_populates="rated_user", foreign_keys="Rating.rated_user_id")
     chat_messages = relationship("ChatMessage", back_populates="user")
+    driver_profile = relationship("Driver", back_populates="user", uselist=False)
+    rider_profile = relationship("Rider", back_populates="user", uselist=False)
     
     def __repr__(self):
         return f"<User(phone={self.phone}, name={self.name})>"
