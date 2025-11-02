@@ -19,11 +19,10 @@ class DriverBase(BaseModel):
 
 
 class DriverCreate(DriverBase):
+    name: str = Field(..., max_length=100)
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$')
     email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8, max_length=128)
-    license_number: str = Field(..., max_length=100)
-    vehicle_plate_number: str = Field(..., max_length=50)
 
 
 class DriverUpdate(DriverBase):
