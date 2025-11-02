@@ -1,7 +1,20 @@
-from pydantic import BaseModel, Field
+# ruff: noqa: E501
+from enum import Enum
 from typing import Optional
 from datetime import datetime
 import uuid
+
+from pydantic import BaseModel, Field
+
+from .driver import Driver as DriverSchema
+from .rider import Rider as RiderSchema
+
+
+class UserRole(str, Enum):
+    RIDER = "rider"
+    DRIVER = "driver"
+    BOTH = "both"
+
 
 class UserBase(BaseModel):
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Phone number in E.164 format")
@@ -26,10 +39,13 @@ class User(UserBase):
     is_verified: bool
     is_phone_verified: bool
     is_email_verified: bool
+    role: UserRole
     rating: float
     total_trips: int
     total_ratings: int
     created_at: datetime
+    driver_profile: Optional[DriverSchema] = None
+    rider_profile: Optional[RiderSchema] = None
     
     class Config:
         from_attributes = True

@@ -33,6 +33,7 @@ class User(BaseModel):
     
     # Relationships
     trip_memberships = relationship("TripMember", back_populates="user")
+    created_trips = relationship("Trip", back_populates="driver", foreign_keys="Trip.driver_id")
     sent_ratings = relationship("Rating", back_populates="rater_user", foreign_keys="Rating.rater_user_id")
     received_ratings = relationship("Rating", back_populates="rated_user", foreign_keys="Rating.rated_user_id")
     chat_messages = relationship("ChatMessage", back_populates="user")

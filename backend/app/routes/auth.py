@@ -10,7 +10,9 @@ from ..core.auth import (
     get_password_hash,
     verify_password,
 )
-from ..models.user import User
+from ..models.user import User, UserRole
+from ..models.driver import Driver
+from ..models.rider import Rider
 from ..schemas.auth import (
     OTPRequest,
     OTPVerify,
@@ -100,11 +102,14 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
         )
 
     hashed_password = get_password_hash(request.password)
+    role = request.role or UserRole.RIDER
+
     user = User(
         phone=request.phone,
         email=request.email,
         hashed_password=hashed_password,
         name=request.name,
+        role=role,
         is_verified=False,
         is_phone_verified=False,
         is_email_verified=False,
@@ -113,7 +118,18 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_access_token({"sub": user.phone})
+    # Create role-specific profiles
+    if role in (UserRole.DRIVER, UserRole.BOTH):
+        driver_profile = Driver(id=user.id)
+        db.add(driver_profile)
+    if role in (UserRole.RIDER, UserRole.BOTH):
+        rider_profile = Rider(id=user.id)
+        db.add(rider_profile)
+
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token({"sub": str(user.id), "role": user.role.value})
     return Token(access_token=token, user=UserSchema.from_orm(user))
 
 
