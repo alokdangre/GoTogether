@@ -4,9 +4,8 @@ from sqlalchemy import and_
 from typing import List
 
 from ..core.database import get_db
-from ..core.auth import get_current_user, get_current_driver
+from ..core.auth import get_current_user, require_driver_user
 from ..models.user import User
-from ..models.driver import Driver
 from ..models.trip import Trip, TripMember, MemberStatus
 from ..models.payment import Payment, PaymentSplit, PaymentStatus, PaymentGateway, SplitStatus
 from ..schemas.payment import PaymentCreate, Payment as PaymentSchema, PaymentSplit as PaymentSplitSchema
@@ -17,7 +16,7 @@ router = APIRouter(prefix="/api/payment", tags=["Payment"])
 @router.post("/split", response_model=PaymentSplitSchema, status_code=status.HTTP_201_CREATED)
 async def create_payment_split(
     payment_data: PaymentCreate,
-    current_driver: Driver = Depends(get_current_driver),
+    current_driver: User = Depends(require_driver_user),
     db: Session = Depends(get_db)
 ):
     """Calculate and initiate payment split for a trip"""

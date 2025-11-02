@@ -159,6 +159,10 @@ async def search_trips(
     # Convert to candidates
     candidates = []
     for trip in db_trips:
+        driver_profile = trip.driver.driver_profile
+        driver_name = driver_profile.name if driver_profile and driver_profile.name else (trip.driver.name or "Anonymous")
+        driver_rating = driver_profile.rating if driver_profile else trip.driver.rating
+
         candidate = TripCandidate(
             id=str(trip.id),
             origin=Location(trip.origin_lat, trip.origin_lng),
@@ -166,8 +170,8 @@ async def search_trips(
             departure_time=trip.departure_time,
             available_seats=trip.available_seats,
             fare_per_person=trip.fare_per_person,
-            driver_name=trip.driver.name or "Anonymous",
-            driver_rating=trip.driver.rating
+            driver_name=driver_name,
+            driver_rating=driver_rating
         )
         candidates.append(candidate)
     

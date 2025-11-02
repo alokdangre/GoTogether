@@ -15,7 +15,6 @@ from .models.trip import Trip, TripMember, MemberStatus
 from .models.user import User
 from .routes import (
     auth_router,
-    driver_auth_router,
     drivers_router,
     trips_router,
     payment_router,
@@ -42,7 +41,6 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
-app.include_router(driver_auth_router)
 app.include_router(drivers_router)
 app.include_router(trips_router)
 app.include_router(payment_router)
@@ -89,12 +87,13 @@ async def websocket_endpoint(
     """WebSocket endpoint for trip chat"""
     # Verify token and get user (simplified for demo)
     from .core.auth import verify_token
-    phone = verify_token(token)
-    if not phone:
+    verified = verify_token(token)
+    if not verified:
         await websocket.close(code=1008, reason="Invalid token")
         return
     
-    user = db.query(User).filter(User.phone == phone).first()
+    user_id, _role = verified
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         await websocket.close(code=1008, reason="User not found")
         return
