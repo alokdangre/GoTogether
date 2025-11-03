@@ -104,6 +104,19 @@ export const tripsApi = {
     const response = await api.post(`/api/trips/${tripId}/members/${memberId}/approve`);
     return response.data;
   },
+
+  getDriverTrips: async (params?: { status?: string }): Promise<TripWithDriver[]> => {
+    const response = await api.get('/api/trips/driver', { params });
+    return response.data;
+  },
+};
+
+// Drivers API
+export const driversApi = {
+  getProfile: async (): Promise<User> => {
+    const response = await api.get('/api/drivers/me');
+    return response.data;
+  },
 };
 
 // Payment API
