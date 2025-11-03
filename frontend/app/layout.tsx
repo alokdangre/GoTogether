@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
+import Header from '@/components/Header';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -56,6 +58,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="GoTogether" />
       </head>
       <body className={inter.className}>
+        <Header />
         <div className="min-h-screen bg-gray-50">
           {children}
         </div>
