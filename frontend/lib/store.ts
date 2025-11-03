@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi, tripsApi, handleApiError } from './api';
+import { authApi, tripsApi, driversApi, handleApiError } from './api';
 import {
   User,
   TripWithDriver,
@@ -148,6 +148,21 @@ export const useTripStore = create<TripState>((set, get) => ({
     set({ isLoading: true });
     try {
       const trips = await tripsApi.getUserTrips();
+      set({
+        trips,
+        isLoading: false,
+      });
+      return trips;
+    } catch (error) {
+      set({ isLoading: false });
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  fetchDriverTrips: async (): Promise<TripWithDriver[]> => {
+    set({ isLoading: true });
+    try {
+      const trips = await tripsApi.getDriverTrips();
       set({
         trips,
         isLoading: false,
