@@ -8,17 +8,50 @@ export interface User {
   is_active: boolean;
   is_verified: boolean;
   is_phone_verified: boolean;
+  is_email_verified: boolean;
   role: 'rider' | 'driver' | 'both';
   rating: number;
   total_trips: number;
   total_ratings: number;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface UserCreate {
   phone: string;
   name?: string;
   avatar_url?: string;
+}
+
+export interface Driver {
+  id: string;
+  is_active: boolean;
+  is_verified: boolean;
+  verified_at?: string;
+  deactivated_at?: string;
+  license_number?: string;
+  license_document_url?: string;
+  vehicle_type?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_color?: string;
+  vehicle_plate_number?: string;
+  vehicle_document_url?: string;
+  rating: number;
+  total_trips: number;
+  total_ratings: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Rider {
+  id: string;
+  preferred_payment_method?: string;
+  rating: number;
+  total_trips: number;
+  total_ratings: number;
+  created_at: string;
+  updated_at?: string;
 }
 
 // Trip types
@@ -60,7 +93,7 @@ export interface TripMember {
   seats_requested: number;
   status: MemberStatus;
   message?: string;
-  joined_at: string;
+  created_at: string;
   updated_at?: string;
 }
 
@@ -147,6 +180,7 @@ export interface Payment {
   gateway_payment_id?: string;
   gateway_order_id?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface PaymentSplitItem {
@@ -154,6 +188,8 @@ export interface PaymentSplitItem {
   user: User;
   amount: number;
   status: SplitStatus;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface PaymentSplit {
@@ -193,12 +229,15 @@ export interface Rating {
   id: string;
   trip_id: string;
   rater_id: string;
-  rated_user_id: string;
-  rating: number;
+  rated_id: string;
+  rater_role: 'rider' | 'driver';
+  rated_role: 'rider' | 'driver';
+  rating: number; // 1-5 stars
   comment?: string;
   created_at: string;
+  updated_at?: string;
   rater: User;
-  rated_user: User;
+  rated: User;
 }
 
 // API Response types
