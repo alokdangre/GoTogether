@@ -295,4 +295,5 @@ export interface TripState {
   joinTrip: (tripId: string, seats: number, message?: string) => Promise<void>;
   fetchTrip: (tripId: string) => Promise<TripDetail>;
   fetchUserTrips: () => Promise<TripWithDriver[]>;
+  fetchDriverTrips: () => Promise<TripWithDriver[]>;
 }
