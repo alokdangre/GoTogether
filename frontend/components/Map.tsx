@@ -8,13 +8,14 @@ import { TripMatch, Location } from '@/types';
 
 interface MapProps {
   center: Location;
+  markers?: { lat: number; lng: number; title: string }[];
   trips?: TripMatch[];
   selectedTrip?: TripMatch | null;
   onTripSelect?: (trip: TripMatch) => void;
   className?: string;
 }
 
-export default function Map({ center, trips = [], selectedTrip, onTripSelect, className = '' }: MapProps) {
+export default function Map({ center, markers = [], trips = [], selectedTrip, onTripSelect, className = '' }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
