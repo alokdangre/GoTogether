@@ -42,13 +42,13 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # Email / SMTP
-    smtp_host: Optional[str] = None
-    smtp_port: Optional[int] = None
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
+    smtp_host: Optional[str] = "smtp.gmail.com"
+    smtp_port: Optional[int] = 587
+    smtp_username: Optional[str] = "alokdangre@gmail.com"
+    smtp_password: Optional[str] = "rlcn nhvz knih bxas"
     smtp_use_tls: bool = True
-    smtp_from_email: Optional[str] = None
-    smtp_from_name: Optional[str] = None
+    smtp_from_email: Optional[str] = "alokdangre@gmail.com"
+    smtp_from_name: Optional[str] = "GoTogether"
 
     class Config:
         env_file = str(BASE_DIR / ".env")
