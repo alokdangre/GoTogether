@@ -2,10 +2,13 @@
 export interface User {
   id: string;
   phone: string;
+  email?: string;
   name?: string;
   avatar_url?: string;
   is_active: boolean;
   is_verified: boolean;
+  is_phone_verified: boolean;
+  role: 'rider' | 'driver' | 'both';
   rating: number;
   total_trips: number;
   total_ratings: number;
