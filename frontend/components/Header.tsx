@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CarIcon, UserIcon, PlusIcon, HomeIcon } from 'lucide-react';
