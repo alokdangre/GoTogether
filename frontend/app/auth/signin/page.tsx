@@ -60,123 +60,134 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <CarIcon className="h-12 w-12 text-primary-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">GoTogether</h1>
-          <p className="text-gray-600">Share rides, split costs, travel smart</p>
-        </div>
-
-        {/* Sign In Form */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              {step === 'phone' ? 'Sign In' : 'Verify OTP'}
-            </h2>
-            <p className="text-gray-600">
-              {step === 'phone' 
-                ? 'Enter your phone number to get started'
-                : `Enter the OTP sent to ${phoneValue}`
-              }
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Card Container */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-8">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-6">
+                <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
+                  <CarIcon className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+              <p className="text-blue-100 text-sm">Share rides, split costs, travel smart</p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {step === 'phone' ? (
-              <div>
-                <label className="form-label">Phone Number</label>
-                <div className="relative">
+          {/* Form */}
+          <div className="px-8 py-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {step === 'phone' ? 'Sign In' : 'Verify OTP'}
+              </h2>
+              <p className="text-gray-600">
+                {step === 'phone' 
+                  ? 'Enter your phone number to continue'
+                  : `Enter the OTP sent to ${phoneValue}`
+                }
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {step === 'phone' ? (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      {...register('phone', {
+                        required: 'Phone number is required',
+                        pattern: {
+                          value: /^\+[1-9]\d{1,14}$/,
+                          message: 'Please enter a valid phone number with country code (e.g., +919876543210)',
+                        },
+                      })}
+                      placeholder="+919876543210"
+                      className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                    />
+                    <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  </div>
+                  {errors.phone && (
+                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    Include country code (e.g., +91 for India)
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">OTP Code</label>
                   <input
-                    type="tel"
-                    {...register('phone', {
-                      required: 'Phone number is required',
+                    type="text"
+                    {...register('otp', {
+                      required: 'OTP is required',
                       pattern: {
-                        value: /^\+[1-9]\d{1,14}$/,
-                        message: 'Please enter a valid phone number with country code (e.g., +919876543210)',
+                        value: /^\d{4,6}$/,
+                        message: 'Please enter a valid OTP',
                       },
                     })}
-                    placeholder="+919876543210"
-                    className="form-input pl-10"
+                    placeholder="123456"
+                    className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-center text-2xl tracking-widest font-bold text-gray-900"
+                    maxLength={6}
                   />
-                  <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  {errors.otp && (
+                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.otp.message}</p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500 text-center">
+                    Didn't receive the code?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setStep('phone')}
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Try again
+                    </button>
+                  </p>
                 </div>
-                {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">
-                  Include country code (e.g., +91 for India)
-                </p>
-              </div>
-            ) : (
-              <div>
-                <label className="form-label">OTP Code</label>
-                <input
-                  type="text"
-                  {...register('otp', {
-                    required: 'OTP is required',
-                    pattern: {
-                      value: /^\d{4,6}$/,
-                      message: 'Please enter a valid OTP',
-                    },
-                  })}
-                  placeholder="123456"
-                  className="form-input text-center text-2xl tracking-widest"
-                  maxLength={6}
-                />
-                {errors.otp && (
-                  <p className="mt-1 text-sm text-red-600">{errors.otp.message}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">
-                  Didn't receive the code? 
-                  <button
-                    type="button"
-                    onClick={() => setStep('phone')}
-                    className="ml-1 text-primary-600 hover:text-primary-700"
-                  >
-                    Try again
-                  </button>
-                </p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  {step === 'phone' ? 'Sending OTP...' : 'Verifying...'}
-                </>
-              ) : (
-                step === 'phone' ? 'Send OTP' : 'Verify & Sign In'
               )}
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center px-6 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-3" />
+                    {step === 'phone' ? 'Sending OTP...' : 'Verifying...'}
+                  </>
+                ) : (
+                  step === 'phone' ? 'Send OTP' : 'Verify & Sign In'
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
+            <div className="text-center text-sm text-gray-600">
+              <p>
+                By signing in, you agree to our{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Privacy Policy</a>
+              </p>
+            </div>
+          </div>
 
           {/* Development Note */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                <strong>Development Mode:</strong> Use OTP <code className="bg-yellow-100 px-1 rounded">123456</code> for testing
+            <div className="mx-8 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <p className="text-sm text-yellow-800 text-center">
+                <strong className="font-medium">Development Mode:</strong> Use OTP{' '}
+                <code className="bg-yellow-100 px-2 py-1 rounded font-mono font-bold">123456</code>{' '}
+                for testing
               </p>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-600">
-          <p>
-            By signing in, you agree to our{' '}
-            <a href="#" className="text-primary-600 hover:text-primary-700">Terms of Service</a>
-            {' '}and{' '}
-            <a href="#" className="text-primary-600 hover:text-primary-700">Privacy Policy</a>
-          </p>
         </div>
       </div>
     </div>
