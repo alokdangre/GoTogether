@@ -123,6 +123,22 @@ export default function HomePage() {
               </button>
             </div>
 
+            {/* Sign Up CTA */}
+            {!isAuthenticated && (
+              <div className="text-center mb-12">
+                <p className="text-blue-100 mb-4">New to GoTogether?</p>
+                <button
+                  onClick={() => router.push('/auth/signup')}
+                  className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                  Sign Up Now
+                </button>
+              </div>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="text-center">

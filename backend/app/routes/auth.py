@@ -45,37 +45,61 @@ async def send_otp(request: OTPRequest, db: Session = Depends(get_db)):
 
 @router.post("/verify", response_model=Token)
 async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
-    """Verify OTP and return JWT token"""
-    # Verify OTP
-    is_valid = await otp_service.verify_otp(request.request_id, request.phone, request.otp)
+    """Verify OTP and complete authentication."""
+    # Check if OTP is valid
+    is_valid = await otp_service.verify_otp(request.phone, request.otp, request.request_id)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP"
         )
-    
-    # Get or create user
+
+    # Check if user exists
     user = db.query(User).filter(User.phone == request.phone).first()
+
     if not user:
-        user = User(
-            phone=request.phone,
-            is_verified=True,
-            is_phone_verified=True,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        # If user doesn't exist and we have signup data, create new user
+        if hasattr(request, 'name') and request.name:
+            role = getattr(request, 'role', UserRole.RIDER)
+            user = User(
+                phone=request.phone,
+                name=getattr(request, 'name', None),
+                email=getattr(request, 'email', None),
+                role=role,
+                is_verified=False,
+                is_phone_verified=True,
+                is_email_verified=False,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+            # Create role-specific profiles
+            if role in (UserRole.DRIVER, UserRole.BOTH):
+                driver_profile = Driver(id=user.id)
+                db.add(driver_profile)
+            if role in (UserRole.RIDER, UserRole.BOTH):
+                rider_profile = Rider(id=user.id)
+                db.add(rider_profile)
+
+            db.commit()
+            db.refresh(user)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found. Please provide signup information."
+            )
     else:
-        # Update verification status
+        # Update verification status for existing user
         user.is_phone_verified = True
         user.is_verified = user.is_phone_verified or user.is_email_verified
         db.commit()
     
     # Create access token
-    access_token = create_access_token(data={"sub": user.phone})
+    token = create_access_token({"sub": str(user.id), "role": user.role.value})
     
     return Token(
-        access_token=access_token,
+        access_token=token,
         user=UserSchema.from_orm(user)
     )
 

@@ -1,0 +1,340 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { PhoneIcon, UserIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { CarIcon, User, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+import { useAuthStore } from '@/lib/store';
+import LoadingSpinner from '@/components/LoadingSpinner';
+
+interface SignUpFormData {
+  name: string;
+  phone: string;
+  email?: string;
+  role: 'rider' | 'driver' | 'both';
+  otp: string;
+}
+
+export default function SignUpPage() {
+  const router = useRouter();
+  const { sendOTP, login, isLoading } = useAuthStore();
+  const [step, setStep] = useState<'details' | 'otp'>('details');
+  const [requestId, setRequestId] = useState<string>('');
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignUpFormData>({
+    defaultValues: {
+      role: 'rider',
+    },
+  });
+
+  const phoneValue = watch('phone');
+  const selectedRole = watch('role');
+
+  const handleSendOTP = async (data: Omit<SignUpFormData, 'otp'>) => {
+    try {
+      const id = await sendOTP(data.phone);
+      setRequestId(id);
+      setStep('otp');
+      toast.success('OTP sent to your phone!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+    }
+  };
+
+  const handleVerifyOTP = async (data: SignUpFormData) => {
+    try {
+      await login(data.phone, data.otp, requestId, {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      });
+      toast.success('Account created successfully! Welcome to GoTogether!');
+      router.push('/');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create account');
+    }
+  };
+
+  const onSubmit = (data: SignUpFormData) => {
+    if (step === 'details') {
+      handleSendOTP(data);
+    } else {
+      handleVerifyOTP(data);
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'driver':
+        return <CarIcon className="h-5 w-5" />;
+      case 'rider':
+        return <User className="h-5 w-5" />;
+      case 'both':
+        return <Users className="h-5 w-5" />;
+      default:
+        return <User className="h-5 w-5" />;
+    }
+  };
+
+  const getRoleDescription = (role: string) => {
+    switch (role) {
+      case 'driver':
+        return 'Create trips and earn by sharing rides';
+      case 'rider':
+        return 'Find and join available trips';
+      case 'both':
+        return 'Both drive and find rides as needed';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        {/* Card Container */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-8">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-6">
+                <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
+                  <CheckCircleIcon className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2">Join GoTogether</h1>
+              <p className="text-green-100 text-sm">Create your account and start sharing rides</p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="px-8 py-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {step === 'details' ? 'Create Account' : 'Verify Your Phone'}
+              </h2>
+              <p className="text-gray-600">
+                {step === 'details'
+                  ? 'Fill in your details to get started'
+                  : `Enter the OTP sent to ${phoneValue}`
+                }
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {step === 'details' ? (
+                <>
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Full Name</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        {...register('name', {
+                          required: 'Name is required',
+                          minLength: {
+                            value: 2,
+                            message: 'Name must be at least 2 characters',
+                          },
+                        })}
+                        placeholder="Enter your full name"
+                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                      />
+                      <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    </div>
+                    {errors.name && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        {...register('phone', {
+                          required: 'Phone number is required',
+                          pattern: {
+                            value: /^\+[1-9]\d{1,14}$/,
+                            message: 'Please enter a valid phone number with country code (e.g., +919876543210)',
+                          },
+                        })}
+                        placeholder="+919876543210"
+                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                      />
+                      <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    </div>
+                    {errors.phone && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
+                    )}
+                    <p className="mt-2 text-xs text-gray-500">
+                      Include country code (e.g., +91 for India)
+                    </p>
+                  </div>
+
+                  {/* Email (Optional) */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Email (Optional)</label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        {...register('email', {
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Please enter a valid email address',
+                          },
+                        })}
+                        placeholder="your@email.com"
+                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                      />
+                      <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    </div>
+                    {errors.email && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.email.message}</p>
+                    )}
+                    <p className="mt-2 text-xs text-gray-500">
+                      We'll use this for important updates and receipts
+                    </p>
+                  </div>
+
+                  {/* Role Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-4">How do you want to use GoTogether?</label>
+                    <div className="space-y-3">
+                      {[
+                        { value: 'rider', label: 'Rider', description: 'Find and join available trips' },
+                        { value: 'driver', label: 'Driver', description: 'Create trips and share rides' },
+                        { value: 'both', label: 'Both', description: 'Drive when convenient, ride when needed' },
+                      ].map((role) => (
+                        <label
+                          key={role.value}
+                          className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            selectedRole === role.value
+                              ? 'border-green-500 bg-green-50 shadow-lg'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            {...register('role', { required: 'Please select a role' })}
+                            value={role.value}
+                            className="sr-only"
+                          />
+                          <div className={`p-2 rounded-lg mr-4 ${
+                            selectedRole === role.value ? 'bg-green-100' : 'bg-gray-100'
+                          }`}>
+                            {getRoleIcon(role.value)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-900">{role.label}</div>
+                            <div className="text-sm text-gray-600">{role.description}</div>
+                          </div>
+                          {selectedRole === role.value && (
+                            <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.role && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.role.message}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">OTP Code</label>
+                  <input
+                    type="text"
+                    {...register('otp', {
+                      required: 'OTP is required',
+                      pattern: {
+                        value: /^\d{4,6}$/,
+                        message: 'Please enter a valid OTP',
+                      },
+                    })}
+                    placeholder="123456"
+                    className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-center text-2xl tracking-widest font-bold text-gray-900"
+                    maxLength={6}
+                  />
+                  {errors.otp && (
+                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.otp.message}</p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500 text-center">
+                    Didn't receive the code?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setStep('details')}
+                      className="text-green-600 hover:text-green-700 font-medium"
+                    >
+                      Go back
+                    </button>
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center px-6 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-3" />
+                    {step === 'details' ? 'Sending OTP...' : 'Creating Account...'}
+                  </>
+                ) : (
+                  step === 'details' ? 'Send Verification Code' : 'Create My Account'
+                )}
+              </button>
+            </form>
+
+            {/* Sign In Link */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <button
+                  onClick={() => router.push('/auth/signin')}
+                  className="text-green-600 hover:text-green-700 font-medium"
+                >
+                  Sign in here
+                </button>
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
+            <div className="text-center text-sm text-gray-600">
+              <p>
+                By creating an account, you agree to our{' '}
+                <a href="#" className="text-green-600 hover:text-green-700 font-medium">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-green-600 hover:text-green-700 font-medium">Privacy Policy</a>
+              </p>
+            </div>
+          </div>
+
+          {/* Development Note */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mx-8 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <p className="text-sm text-yellow-800 text-center">
+                <strong className="font-medium">Development Mode:</strong> Use OTP{' '}
+                <code className="bg-yellow-100 px-2 py-1 rounded font-mono font-bold">123456</code>{' '}
+                for testing
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

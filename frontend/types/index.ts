@@ -157,6 +157,10 @@ export interface OTPVerify {
   phone: string;
   otp: string;
   request_id: string;
+  // Optional signup fields
+  name?: string;
+  email?: string;
+  role?: 'rider' | 'driver' | 'both';
 }
 
 export interface AuthToken {

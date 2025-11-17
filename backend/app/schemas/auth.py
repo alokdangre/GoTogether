@@ -11,6 +11,10 @@ class OTPVerify(BaseModel):
     phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$')
     otp: str = Field(..., min_length=4, max_length=6)
     request_id: str
+    # Optional signup fields
+    name: Optional[str] = Field(None, max_length=100)
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = Field(None, description="Role to register as")
 
 
 class SignUpRequest(BaseModel):
