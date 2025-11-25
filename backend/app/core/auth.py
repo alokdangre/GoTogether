@@ -200,6 +200,56 @@ async def require_driver_user(
     return user
 
 
+# Admin authentication
+def create_admin_token(admin_id: str, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token for admin users."""
+    data = {"sub": admin_id, "type": "admin"}
+    return _create_token(data, expires_delta)
+
+
+def verify_admin_token(token: str) -> Optional[str]:
+    """Verify admin JWT token and return admin_id."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        admin_id: Optional[str] = payload.get("sub")
+        token_type: Optional[str] = payload.get("type")
+        if admin_id is None or token_type != "admin":
+            return None
+        return admin_id
+    except JWTError:
+        return None
+
+
+async def get_current_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Get current authenticated admin from JWT token"""
+    from ..models.admin import Admin
+    
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate admin credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    admin_id = verify_admin_token(credentials.credentials)
+    if admin_id is None:
+        raise credentials_exception
+
+    admin = db.query(Admin).filter(Admin.id == admin_id).first()
+    if admin is None:
+        raise credentials_exception
+
+    if not admin.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive admin account"
+        )
+    
+    return admin
+
+
 # Mock OTP service for development
 class MockOTPService:
     """Mock OTP service for development and testing"""

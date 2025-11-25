@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      login: async (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string; role: string }): Promise<void> => {
+      login: async (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string }): Promise<void> => {
         set({ isLoading: true });
         try {
           const response = await authApi.verifyOTP({
@@ -43,7 +43,6 @@ export const useAuthStore = create<AuthState>()(
             ...(signupData && {
               name: signupData.name,
               email: signupData.email,
-              role: signupData.role,
             }),
           });
 

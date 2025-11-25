@@ -33,4 +33,4 @@ class Driver(BaseModel):
 
     # Relationships
     user = relationship("User", back_populates="driver_profile")
-    trips = relationship("Trip", back_populates="driver")
+

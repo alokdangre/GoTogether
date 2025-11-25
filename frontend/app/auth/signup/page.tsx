@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { PhoneIcon, UserIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { CarIcon, User, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useAuthStore } from '@/lib/store';
@@ -14,7 +13,6 @@ interface SignUpFormData {
   name: string;
   phone: string;
   email?: string;
-  role: 'rider' | 'driver' | 'both';
   otp: string;
 }
 
@@ -29,14 +27,9 @@ export default function SignUpPage() {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<SignUpFormData>({
-    defaultValues: {
-      role: 'rider',
-    },
-  });
+  } = useForm<SignUpFormData>();
 
   const phoneValue = watch('phone');
-  const selectedRole = watch('role');
 
   const handleSendOTP = async (data: Omit<SignUpFormData, 'otp'>) => {
     try {
@@ -54,7 +47,6 @@ export default function SignUpPage() {
       await login(data.phone, data.otp, requestId, {
         name: data.name,
         email: data.email,
-        role: data.role,
       });
       toast.success('Account created successfully! Welcome to GoTogether!');
       router.push('/');
@@ -68,32 +60,6 @@ export default function SignUpPage() {
       handleSendOTP(data);
     } else {
       handleVerifyOTP(data);
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'driver':
-        return <CarIcon className="h-5 w-5" />;
-      case 'rider':
-        return <User className="h-5 w-5" />;
-      case 'both':
-        return <Users className="h-5 w-5" />;
-      default:
-        return <User className="h-5 w-5" />;
-    }
-  };
-
-  const getRoleDescription = (role: string) => {
-    switch (role) {
-      case 'driver':
-        return 'Create trips and earn by sharing rides';
-      case 'rider':
-        return 'Find and join available trips';
-      case 'both':
-        return 'Both drive and find rides as needed';
-      default:
-        return '';
     }
   };
 
@@ -204,49 +170,6 @@ export default function SignUpPage() {
                     <p className="mt-2 text-xs text-gray-500">
                       We'll use this for important updates and receipts
                     </p>
-                  </div>
-
-                  {/* Role Selection */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-4">How do you want to use GoTogether?</label>
-                    <div className="space-y-3">
-                      {[
-                        { value: 'rider', label: 'Rider', description: 'Find and join available trips' },
-                        { value: 'driver', label: 'Driver', description: 'Create trips and share rides' },
-                        { value: 'both', label: 'Both', description: 'Drive when convenient, ride when needed' },
-                      ].map((role) => (
-                        <label
-                          key={role.value}
-                          className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                            selectedRole === role.value
-                              ? 'border-green-500 bg-green-50 shadow-lg'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            {...register('role', { required: 'Please select a role' })}
-                            value={role.value}
-                            className="sr-only"
-                          />
-                          <div className={`p-2 rounded-lg mr-4 ${
-                            selectedRole === role.value ? 'bg-green-100' : 'bg-gray-100'
-                          }`}>
-                            {getRoleIcon(role.value)}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900">{role.label}</div>
-                            <div className="text-sm text-gray-600">{role.description}</div>
-                          </div>
-                          {selectedRole === role.value && (
-                            <CheckCircleIcon className="h-6 w-6 text-green-600" />
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                    {errors.role && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.role.message}</p>
-                    )}
                   </div>
                 </>
               ) : (

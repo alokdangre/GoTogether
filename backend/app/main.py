@@ -19,6 +19,8 @@ from .routes import (
     trips_router,
     payment_router,
     ratings_router,
+    admin_router,
+    analytics_router,
 )
 
 # Create FastAPI app
@@ -45,6 +47,8 @@ app.include_router(drivers_router)
 app.include_router(trips_router)
 app.include_router(payment_router)
 app.include_router(ratings_router)
+app.include_router(admin_router)
+app.include_router(analytics_router)
 
 # WebSocket connection manager
 class ConnectionManager:

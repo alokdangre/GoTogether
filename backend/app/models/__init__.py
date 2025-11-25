@@ -5,6 +5,7 @@ from .trip import Trip, TripMember
 from .payment import Payment, PaymentSplit
 from .rating import Rating
 from .chat import ChatMessage
+from .admin import Admin
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Rating",
     "ChatMessage",
     "Rider",
+    "Admin",
 ]

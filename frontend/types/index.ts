@@ -160,7 +160,6 @@ export interface OTPVerify {
   // Optional signup fields
   name?: string;
   email?: string;
-  role?: 'rider' | 'driver' | 'both';
 }
 
 export interface AuthToken {
@@ -284,7 +283,7 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phone: string, otp: string, requestId: string) => Promise<void>;
+  login: (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string }) => Promise<void>;
   logout: () => void;
   sendOTP: (phone: string) => Promise<string>;
 }

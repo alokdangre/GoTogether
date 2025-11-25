@@ -29,7 +29,7 @@ export default function SearchForm({ onSearch, onClose, defaultOrigin }: SearchF
       max_origin_distance: 2.0,
       max_dest_distance: 3.0,
       time_window_minutes: 15,
-      departure_time: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+      departure_time: new Date(Date.now() + 60 * 60 * 1000),
     },
   });
 
@@ -60,7 +60,7 @@ export default function SearchForm({ onSearch, onClose, defaultOrigin }: SearchF
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
           <div className="flex items-center justify-between">

@@ -47,7 +47,8 @@ async def send_otp(request: OTPRequest, db: Session = Depends(get_db)):
 async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
     """Verify OTP and complete authentication."""
     # Check if OTP is valid
-    is_valid = await otp_service.verify_otp(request.phone, request.otp, request.request_id)
+    is_valid = await otp_service.verify_otp(request.request_id, request.phone, request.otp)
+    
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,14 +59,13 @@ async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.phone == request.phone).first()
 
     if not user:
-        # If user doesn't exist and we have signup data, create new user
+        # If user doesn't exist and we have signup data, create new user as RIDER
         if hasattr(request, 'name') and request.name:
-            role = getattr(request, 'role', UserRole.RIDER)
             user = User(
                 phone=request.phone,
-                name=getattr(request, 'name', None),
+                name=request.name,
                 email=getattr(request, 'email', None),
-                role=role,
+                role=UserRole.RIDER,  # Always create as RIDER
                 is_verified=False,
                 is_phone_verified=True,
                 is_email_verified=False,
@@ -74,13 +74,9 @@ async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(user)
 
-            # Create role-specific profiles
-            if role in (UserRole.DRIVER, UserRole.BOTH):
-                driver_profile = Driver(id=user.id)
-                db.add(driver_profile)
-            if role in (UserRole.RIDER, UserRole.BOTH):
-                rider_profile = Rider(id=user.id)
-                db.add(rider_profile)
+            # Always create Rider profile for new signups
+            rider_profile = Rider(id=user.id)
+            db.add(rider_profile)
 
             db.commit()
             db.refresh(user)

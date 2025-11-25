@@ -14,7 +14,6 @@ class OTPVerify(BaseModel):
     # Optional signup fields
     name: Optional[str] = Field(None, max_length=100)
     email: Optional[EmailStr] = None
-    role: Optional[UserRole] = Field(None, description="Role to register as")
 
 
 class SignUpRequest(BaseModel):
@@ -44,3 +43,26 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: User
+
+
+# Admin schemas
+class AdminLogin(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class AdminToken(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class DriverCreate(BaseModel):
+    phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$')
+    name: str = Field(..., max_length=100)
+    email: Optional[EmailStr] = None
+    license_number: Optional[str] = Field(None, max_length=100)
+    vehicle_type: Optional[str] = Field(None, max_length=50)
+    vehicle_make: Optional[str] = Field(None, max_length=100)
+    vehicle_model: Optional[str] = Field(None, max_length=100)
+    vehicle_color: Optional[str] = Field(None, max_length=50)
+    vehicle_plate_number: Optional[str] = Field(None, max_length=50)
