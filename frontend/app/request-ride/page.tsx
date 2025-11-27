@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { MapPinIcon, ClockIcon, TrainIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ClockIcon, UsersIcon } from '@heroicons/react/24/outline';
 import LocationInput from '@/components/LocationInput';
 import { RideRequestCreate, Location } from '@/types';
 
@@ -105,7 +105,7 @@ export default function RequestRidePage() {
                                     onChange={(location: Location) => {
                                         setValue('source_lat', location.lat);
                                         setValue('source_lng', location.lng);
-                                        setValue('source_address', location.address);
+                                        setValue('source_address', location.address || '');
                                     }}
                                     placeholder="Enter pickup location"
                                     error={errors.source_lat?.message}
@@ -119,7 +119,7 @@ export default function RequestRidePage() {
                                     onChange={(location: Location) => {
                                         setValue('destination_lat', location.lat);
                                         setValue('destination_lng', location.lng);
-                                        setValue('destination_address', location.address);
+                                        setValue('destination_address', location.address || '');
                                     }}
                                     placeholder="Enter destination"
                                     error={errors.destination_lat?.message}
@@ -195,7 +195,9 @@ export default function RequestRidePage() {
                             {isRailwayStation && (
                                 <div className="pl-0 sm:pl-8">
                                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                                        <TrainIcon className="inline h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                        <svg className="inline h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                        </svg>
                                         Train Departure Time
                                     </label>
                                     <input
