@@ -261,7 +261,7 @@ export interface ApiError {
 export interface TripFormData {
   origin: LocationWithAddress;
   destination: LocationWithAddress;
-  departure_time: Date;
+  departure_time: string | Date;
   total_seats: number;
   fare_per_person: number;
   vehicle_type: VehicleType;
@@ -271,7 +271,7 @@ export interface TripFormData {
 export interface SearchFormData {
   origin: LocationWithAddress;
   destination: LocationWithAddress;
-  departure_time: Date;
+  departure_time: string | Date;
   max_origin_distance: number;
   max_dest_distance: number;
   time_window_minutes: number;

@@ -18,7 +18,7 @@ export default function HomePage() {
   const { isAuthenticated } = useAuthStore();
   const { searchResults, isLoading, searchTrips } = useTripStore();
   const { currentLocation, getCurrentLocation } = useLocationStore();
-  
+
   const [showSearch, setShowSearch] = useState(false);
   const [mapCenter, setMapCenter] = useState<Location>({ lat: 22.253, lng: 84.901 }); // NIT Rourkela default
   const [selectedTrip, setSelectedTrip] = useState<TripMatch | null>(null);
@@ -50,7 +50,7 @@ export default function HomePage() {
         origin_lng: searchData.origin.lng,
         dest_lat: searchData.destination.lat,
         dest_lng: searchData.destination.lng,
-        departure_time: searchData.departure_time.toISOString(),
+        departure_time: new Date(searchData.departure_time).toISOString(),
         max_origin_distance: searchData.max_origin_distance,
         max_dest_distance: searchData.max_dest_distance,
         time_window_minutes: searchData.time_window_minutes,
@@ -63,7 +63,7 @@ export default function HomePage() {
       } else {
         toast.success(`Found ${results.length} matching trip${results.length > 1 ? 's' : ''}!`);
       }
-      
+
       setShowSearch(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to search trips');
@@ -286,9 +286,8 @@ export default function HomePage() {
                   {searchResults.map((trip) => (
                     <div
                       key={trip.id}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${
-                        selectedTrip?.id === trip.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
-                      }`}
+                      className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${selectedTrip?.id === trip.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                        }`}
                       onClick={() => handleTripSelect(trip)}
                     >
                       <TripCard trip={trip} compact />
