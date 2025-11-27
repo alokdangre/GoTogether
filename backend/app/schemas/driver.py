@@ -1,27 +1,37 @@
-from datetime import datetime
-from typing import Optional
-import uuid
-
 from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
+import uuid
 
 
 class DriverBase(BaseModel):
-    avatar_url: Optional[str] = Field(None, max_length=500)
-    license_number: Optional[str] = Field(None, max_length=100)
-    license_document_url: Optional[str] = Field(None, max_length=500)
-    vehicle_type: Optional[str] = Field(None, max_length=50)
+    name: str = Field(..., max_length=100)
+    phone: str = Field(..., max_length=20)
+    email: Optional[str] = Field(None, max_length=255)
+    license_number: Optional[str] = Field(None, max_length=50)
+    vehicle_type: Optional[str] = Field(None, max_length=20)
     vehicle_make: Optional[str] = Field(None, max_length=100)
     vehicle_model: Optional[str] = Field(None, max_length=100)
     vehicle_color: Optional[str] = Field(None, max_length=50)
-    vehicle_plate_number: Optional[str] = Field(None, max_length=50)
-    vehicle_document_url: Optional[str] = Field(None, max_length=500)
+    vehicle_plate_number: Optional[str] = Field(None, max_length=20)
+    availability_status: str = "available"
 
 
 class DriverCreate(DriverBase):
     pass
 
 
-class DriverUpdate(DriverBase):
+class DriverUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    license_number: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_color: Optional[str] = None
+    vehicle_plate_number: Optional[str] = None
+    availability_status: Optional[str] = None
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
 
@@ -30,25 +40,12 @@ class Driver(DriverBase):
     id: uuid.UUID
     is_active: bool
     is_verified: bool
-    verified_at: Optional[datetime]
-    deactivated_at: Optional[datetime]
     rating: float
-    total_trips: int
+    total_rides: int
+    assigned_rides_count: int
     total_ratings: int
     created_at: datetime
     updated_at: Optional[datetime]
-
+    
     class Config:
         from_attributes = True
-
-
-class DriverLoginRequest(BaseModel):
-    phone: Optional[str] = Field(None, pattern=r'^\+[1-9]\d{1,14}$')
-    email: Optional[str] = None
-    password: str = Field(..., min_length=8, max_length=128)
-
-
-class DriverToken(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    driver: Driver

@@ -1,46 +1,31 @@
-from enum import Enum as PyEnum
-
-from sqlalchemy import Column, Integer, Text, ForeignKey, UniqueConstraint, Enum
+from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
 
 
-class RatingParticipantType(PyEnum):
-    RIDER = "rider"
-    DRIVER = "driver"
-
-
 class Rating(BaseModel):
     __tablename__ = "ratings"
-
-    trip_id = Column(UUID(as_uuid=True), ForeignKey("trips.id"), nullable=False)
-    rater_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    rated_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    rater_role = Column(Enum(RatingParticipantType), nullable=False)
-    rated_role = Column(Enum(RatingParticipantType), nullable=False)
+    
+    # User giving the rating
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    # Driver being rated
+    driver_id = Column(UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False)
+    
+    # Grouped ride this rating is for
+    grouped_ride_id = Column(UUID(as_uuid=True), ForeignKey("grouped_rides.id"), nullable=False)
+    
+    # Rating details
     rating = Column(Integer, nullable=False)  # 1-5 stars
     comment = Column(Text, nullable=True)
-
+    testimonial_text = Column(Text, nullable=True)  # Generated testimonial for WhatsApp
+    
     # Relationships
-    trip = relationship("Trip", back_populates="ratings")
-    rater = relationship("User", back_populates="sent_ratings", foreign_keys=[rater_id])
-    rated = relationship("User", back_populates="received_ratings", foreign_keys=[rated_id])
-
-    __table_args__ = (
-        UniqueConstraint(
-            'trip_id',
-            'rater_id',
-            'rated_id',
-            'rater_role',
-            'rated_role',
-            name='unique_trip_rating'
-        ),
-    )
-
+    user = relationship("User", back_populates="ratings")
+    driver = relationship("Driver", back_populates="ratings")
+    grouped_ride = relationship("GroupedRide", back_populates="ratings")
+    
     def __repr__(self):
-        return (
-            f"<Rating(trip_id={self.trip_id}, rater_id={self.rater_id}, rated_id={self.rated_id}, "
-            f"rater_role={self.rater_role}, rated_role={self.rated_role}, rating={self.rating})>"
-        )
+        return f"<Rating(id={self.id}, user_id={self.user_id}, driver_id={self.driver_id}, rating={self.rating})>"

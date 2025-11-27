@@ -10,13 +10,12 @@ from typing import Dict, List
 from .core.config import settings
 from .core.database import get_db
 from .core.redis import get_redis, close_redis
-from .models.chat import ChatMessage
-from .models.trip import Trip, TripMember, MemberStatus
-from .models.user import User
 from .routes import (
     auth_router,
-    drivers_router,
-    trips_router,
+    ride_requests_router,
+    admin_rides_router,
+    notifications_router,
+    user_rides_router,
     payment_router,
     ratings_router,
     admin_router,
@@ -43,15 +42,20 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
-app.include_router(drivers_router)
-app.include_router(trips_router)
+app.include_router(ride_requests_router)
+app.include_router(admin_rides_router)
+app.include_router(notifications_router)
+app.include_router(user_rides_router)
 app.include_router(payment_router)
 app.include_router(ratings_router)
 app.include_router(admin_router)
 app.include_router(analytics_router)
 
-# WebSocket connection manager
-class ConnectionManager:
+# WebSocket chat removed - will be reimplemented later if needed
+# For now, focus on core ride request and grouping functionality
+
+# Placeholder for future chat implementation
+# class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
     

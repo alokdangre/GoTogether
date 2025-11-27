@@ -1,15 +1,7 @@
-from enum import Enum as PyEnum
-
-from sqlalchemy import Column, String, Float, Integer, Boolean, Enum
+from sqlalchemy import Column, String, Float, Integer, Boolean
 from sqlalchemy.orm import relationship
 
 from .base import BaseModel
-
-
-class UserRole(PyEnum):
-    RIDER = "rider"
-    DRIVER = "driver"
-    BOTH = "both"
 
 
 class User(BaseModel):
@@ -20,25 +12,24 @@ class User(BaseModel):
     hashed_password = Column(String(255), nullable=True)
     name = Column(String(100), nullable=True)
     avatar_url = Column(String(500), nullable=True)
+    whatsapp_number = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     is_phone_verified = Column(Boolean, default=False)
     is_email_verified = Column(Boolean, default=False)
-    role = Column(Enum(UserRole), default=UserRole.RIDER, nullable=False)
     
-    # Computed fields (updated by triggers/background jobs)
+    # Ride statistics
+    total_rides = Column(Integer, default=0)
+    total_savings = Column(Float, default=0.0)
+    
+    # Rating (average from all rides)
     rating = Column(Float, default=0.0)
-    total_trips = Column(Integer, default=0)
     total_ratings = Column(Integer, default=0)
     
     # Relationships
-    trip_memberships = relationship("TripMember", back_populates="user")
-    created_trips = relationship("Trip", back_populates="driver", foreign_keys="Trip.driver_id")
-    sent_ratings = relationship("Rating", back_populates="rater", foreign_keys="Rating.rater_id")
-    received_ratings = relationship("Rating", back_populates="rated", foreign_keys="Rating.rated_id")
-    chat_messages = relationship("ChatMessage", back_populates="user")
-    driver_profile = relationship("Driver", back_populates="user", uselist=False)
-    rider_profile = relationship("Rider", back_populates="user", uselist=False)
+    ride_requests = relationship("RideRequest", back_populates="user")
+    notifications = relationship("RideNotification", back_populates="user")
+    ratings = relationship("Rating", back_populates="user")
     
     def __repr__(self):
         return f"<User(phone={self.phone}, name={self.name})>"
