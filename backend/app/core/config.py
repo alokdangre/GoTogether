@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     app_name: str = "GoTogether API"
     debug: bool = True
     version: str = "1.0.0"
+    frontend_url: str = "http://localhost:3000"
     
     # Database
     database_url: str
