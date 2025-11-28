@@ -16,6 +16,7 @@ export interface User {
   total_ratings: number;
   created_at: string;
   updated_at?: string;
+  role?: 'rider' | 'driver' | 'both' | string;
 }
 
 export interface UserCreate {
@@ -235,4 +236,127 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   size: number;
+}
+
+// Legacy Trip types (restored for compatibility)
+export type VehicleType = 'car' | 'auto' | 'bike';
+
+export interface Trip {
+  id: string;
+  origin_lat: number;
+  origin_lng: number;
+  origin_address?: string;
+  dest_lat: number;
+  dest_lng: number;
+  dest_address?: string;
+  departure_time: string;
+  status: string;
+  fare_per_person: number;
+  available_seats: number;
+  total_seats: number;
+  vehicle_type: VehicleType;
+  description?: string;
+  driver_id?: string;
+  created_at: string;
+}
+
+export interface TripWithDriver extends Trip {
+  driver: User | Driver;
+}
+
+export interface TripDetail extends TripWithDriver {
+  members?: User[];
+  stops?: Location[];
+}
+
+export interface TripMatch extends TripWithDriver {
+  match_score: number;
+  origin_distance: number;
+  dest_distance: number;
+  time_difference_minutes: number;
+}
+
+export interface TripCreate {
+  origin_lat: number;
+  origin_lng: number;
+  origin_address?: string;
+  dest_lat: number;
+  dest_lng: number;
+  dest_address?: string;
+  departure_time: string;
+  total_seats: number;
+  fare_per_person: number;
+  vehicle_type: VehicleType;
+  description?: string;
+}
+
+export interface TripSearch {
+  origin_lat: number;
+  origin_lng: number;
+  dest_lat: number;
+  dest_lng: number;
+  date: string;
+  seats: number;
+}
+
+export interface TripSearchResponse {
+  trips: TripMatch[];
+}
+
+export interface AuthToken {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface OTPRequest {
+  phone: string;
+}
+
+export interface OTPVerify {
+  phone: string;
+  otp: string;
+  request_id: string;
+  name?: string;
+  email?: string;
+}
+
+export interface PaymentSplit {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+}
+
+// Store States
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  sendOTP: (phone: string) => Promise<string>;
+  login: (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string }) => Promise<void>;
+  logout: () => void;
+}
+
+export interface TripState {
+  trips: TripWithDriver[];
+  currentTrip: TripDetail | null;
+  searchResults: TripMatch[];
+  isLoading: boolean;
+  createTrip: (tripData: TripCreate) => Promise<TripWithDriver>;
+  searchTrips: (searchData: TripSearch) => Promise<TripMatch[]>;
+  joinTrip: (tripId: string, seats: number, message?: string) => Promise<void>;
+  fetchTrip: (tripId: string) => Promise<TripDetail>;
+  fetchUserTrips: () => Promise<TripWithDriver[]>;
+  fetchDriverTrips: () => Promise<TripWithDriver[]>;
+}
+
+export interface SearchFormData {
+  origin: Location;
+  destination: Location;
+  departure_time: Date;
+  max_origin_distance: number;
+  max_dest_distance: number;
+  time_window_minutes: number;
 }

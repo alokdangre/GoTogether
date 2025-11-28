@@ -10,13 +10,13 @@ from ..models.user import User
 from ..models.ride_request import RideRequest
 from ..models.grouped_ride import GroupedRide
 from ..models.rating import Rating
-from ..schemas.grouped_ride import GroupedRide
+from ..schemas.grouped_ride import GroupedRide as GroupedRideSchema
 from ..schemas.user import UserStats
 
 router = APIRouter(prefix="/api/my-rides", tags=["User Rides"])
 
 
-@router.get("/upcoming", response_model=List[GroupedRide])
+@router.get("/upcoming", response_model=List[GroupedRideSchema])
 async def get_upcoming_rides(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -40,10 +40,10 @@ async def get_upcoming_rides(
         )
     ).order_by(GroupedRide.pickup_time).all()
     
-    return [GroupedRide.from_orm(ride) for ride in grouped_rides]
+    return [GroupedRideSchema.from_orm(ride) for ride in grouped_rides]
 
 
-@router.get("/completed", response_model=List[GroupedRide])
+@router.get("/completed", response_model=List[GroupedRideSchema])
 async def get_completed_rides(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -65,7 +65,7 @@ async def get_completed_rides(
         )
     ).order_by(GroupedRide.created_at.desc()).all()
     
-    return [GroupedRide.from_orm(ride) for ride in grouped_rides]
+    return [GroupedRideSchema.from_orm(ride) for ride in grouped_rides]
 
 
 @router.get("/stats", response_model=UserStats)

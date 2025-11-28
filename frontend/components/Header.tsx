@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { CarIcon, UserIcon, PlusIcon, HomeIcon } from 'lucide-react';
+import { CarIcon, UserIcon, PlusIcon, HomeIcon, BellIcon } from 'lucide-react';
 
 import { useAuthStore } from '@/lib/store';
 
@@ -60,6 +60,13 @@ export default function Header() {
                 <span className="text-sm text-gray-700">
                   Welcome, {user?.name || 'User'}
                 </span>
+                <Link
+                  href="/notifications"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"
+                >
+                  <BellIcon className="h-4 w-4" />
+                  <span>Notifications</span>
+                </Link>
                 <Link
                   href="/profile"
                   className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"

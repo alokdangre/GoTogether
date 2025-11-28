@@ -43,7 +43,33 @@ body {
 }
 
 /* Primary color variables for consistency */
-.primary-50 { @apply bg-blue-50; }
-.primary-100 { @apply bg-blue-100; }
-.primary-600 { @apply bg-blue-600; }
-.primary-700 { @apply bg-blue-700; }
+.primary-50 {
+  @apply bg-blue-50;
+}
+
+.primary-100 {
+  @apply bg-blue-100;
+}
+
+.primary-600 {
+  @apply bg-blue-600;
+}
+
+.primary-700 {
+  @apply bg-blue-700;
+}
+
+/* Global input styles to ensure visibility */
+input:not([type='submit']):not([type='button']):not([type='reset']),
+textarea,
+select {
+  color: #111827 !important;
+  /* gray-900 */
+  background-color: #ffffff !important;
+}
+
+::placeholder {
+  color: #6b7280 !important;
+  /* gray-500 */
+  opacity: 1;
+}

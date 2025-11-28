@@ -143,7 +143,14 @@ export default function AdminRequestsPage() {
             });
             setRequests(response.data);
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || 'Failed to create group');
+            const detail = error.response?.data?.detail;
+            if (typeof detail === 'string') {
+                toast.error(detail);
+            } else if (Array.isArray(detail)) {
+                toast.error(detail.map((err: any) => err.msg).join(', '));
+            } else {
+                toast.error('Failed to create group');
+            }
         }
     };
 
@@ -214,11 +221,11 @@ export default function AdminRequestsPage() {
                             >
                                 {/* Status Bar */}
                                 <div className={`h-2 ${req.status === 'pending' ? 'bg-yellow-500' :
-                                        req.status === 'grouped' ? 'bg-blue-500' :
-                                            req.status === 'assigned' ? 'bg-purple-500' :
-                                                req.status === 'accepted' ? 'bg-green-500' :
-                                                    req.status === 'cancelled' ? 'bg-red-500' :
-                                                        'bg-gray-500'
+                                    req.status === 'grouped' ? 'bg-blue-500' :
+                                        req.status === 'assigned' ? 'bg-purple-500' :
+                                            req.status === 'accepted' ? 'bg-green-500' :
+                                                req.status === 'cancelled' ? 'bg-red-500' :
+                                                    'bg-gray-500'
                                     }`} />
 
                                 <div className="p-6 relative">

@@ -20,8 +20,14 @@ class Notification(NotificationBase):
         from_attributes = True
 
 
-# Removed NotificationWithDetails to avoid circular import issues
+from .driver import Driver
+from .grouped_ride import GroupedRide
 
+class GroupedRideWithDriver(GroupedRide):
+    driver: Optional[Driver] = None
+
+class NotificationWithDetails(Notification):
+    grouped_ride: GroupedRideWithDriver
 
 class NotificationResponse(BaseModel):
     action: str  # "accept" or "reject"

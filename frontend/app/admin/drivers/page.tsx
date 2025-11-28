@@ -72,8 +72,18 @@ export default function AdminDriversPage() {
         const token = localStorage.getItem('admin_token');
 
         try {
+            // Clean data
+            const dataToSend = {
+                ...formData,
+                email: formData.email || undefined, // Send undefined if empty string
+                // Ensure phone starts with + if not present. 
+                // Note: This assumes the user enters a valid number. 
+                // Ideally we should have better validation/input mask.
+                phone: formData.phone.startsWith('+') ? formData.phone : `+${formData.phone}`
+            };
+
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            await axios.post(`${apiUrl}/api/admin/drivers`, formData, {
+            await axios.post(`${apiUrl}/api/admin/drivers`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 

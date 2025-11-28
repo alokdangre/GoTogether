@@ -282,10 +282,21 @@ async def create_grouped_ride(
     db.add(grouped_ride)
     db.flush() # Get ID
     
-    # Update requests
+    # Update requests and create notifications
+    from ..models.ride_notification import RideNotification
+    
     for req in ride_requests:
         req.grouped_ride_id = grouped_ride.id
         req.status = "grouped"
+        
+        # Create notification for user
+        notification = RideNotification(
+            user_id=req.user_id,
+            grouped_ride_id=grouped_ride.id,
+            notification_type="ride_assignment",
+            status="pending"
+        )
+        db.add(notification)
     
     db.commit()
     db.refresh(grouped_ride)

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
 
@@ -9,25 +9,29 @@ from ..models.user import User
 from ..models.ride_notification import RideNotification
 from ..models.ride_request import RideRequest
 from ..models.grouped_ride import GroupedRide
+from ..models.driver import Driver
 from ..schemas.notification import (
     Notification,
-    NotificationResponse
+    NotificationResponse,
+    NotificationWithDetails
 )
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
-@router.get("", response_model=List[Notification])
+@router.get("", response_model=List[NotificationWithDetails])
 async def get_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user's notifications"""
-    notifications = db.query(RideNotification).filter(
+    notifications = db.query(RideNotification).options(
+        joinedload(RideNotification.grouped_ride).joinedload(GroupedRide.driver)
+    ).filter(
         RideNotification.user_id == current_user.id
     ).order_by(RideNotification.sent_at.desc()).all()
     
-    return [Notification.from_orm(notif) for notif in notifications]
+    return [NotificationWithDetails.from_orm(notif) for notif in notifications]
 
 
 @router.put("/{notification_id}/accept", response_model=Notification)

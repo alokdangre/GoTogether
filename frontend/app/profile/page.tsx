@@ -279,7 +279,7 @@ export default function ProfilePage() {
                     <h4 className="text-lg font-semibold text-gray-900 mb-4">Your Statistics</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-xl text-center border border-indigo-200">
-                        <div className="text-3xl font-bold text-indigo-600 mb-1">{user.total_trips || 0}</div>
+                        <div className="text-3xl font-bold text-indigo-600 mb-1">{user.total_rides || 0}</div>
                         <div className="text-sm font-medium text-indigo-700">Total Trips</div>
                       </div>
                       <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center border border-purple-200">

@@ -1,12 +1,12 @@
 'use client';
 
 import { format } from 'date-fns';
-import { 
-  MapPinIcon, 
-  ClockIcon, 
-  UsersIcon, 
+import {
+  MapPinIcon,
+  ClockIcon,
+  UsersIcon,
   CurrencyRupeeIcon,
-  StarIcon 
+  StarIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { CarIcon, TruckIcon } from 'lucide-react';
@@ -20,12 +20,12 @@ interface TripCardProps {
   className?: string;
 }
 
-export default function TripCard({ 
-  trip, 
-  compact = false, 
-  showMatchInfo = false, 
-  onClick, 
-  className = '' 
+export default function TripCard({
+  trip,
+  compact = false,
+  showMatchInfo = false,
+  onClick,
+  className = ''
 }: TripCardProps) {
   const isMatch = 'match_score' in trip;
   const matchTrip = trip as TripMatch;
@@ -92,7 +92,7 @@ export default function TripCard({
 
   if (compact) {
     return (
-      <div 
+      <div
         className={`cursor-pointer hover:bg-gray-50 transition-colors ${className}`}
         onClick={onClick}
       >
@@ -107,13 +107,13 @@ export default function TripCard({
               </span>
               {renderRating(trip.driver.rating)}
             </div>
-            
+
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center">
                 <ClockIcon className="h-4 w-4 mr-1" />
                 {format(new Date(trip.departure_time), 'MMM d, h:mm a')}
               </div>
-              
+
               {isMatch && showMatchInfo && (
                 <div className="flex items-center space-x-3 text-xs">
                   <span>📍 {matchTrip.origin_distance.toFixed(1)}km</span>
@@ -123,7 +123,7 @@ export default function TripCard({
               )}
             </div>
           </div>
-          
+
           <div className="text-right">
             <div className="font-semibold text-gray-900">
               ₹{trip.fare_per_person}
@@ -143,10 +143,9 @@ export default function TripCard({
   }
 
   return (
-    <div 
-      className={`bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow ${
-        onClick ? 'cursor-pointer' : ''
-      } ${className}`}
+    <div
+      className={`bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer' : ''
+        } ${className}`}
       onClick={onClick}
     >
       <div className="p-6">
@@ -163,12 +162,12 @@ export default function TripCard({
               <div className="flex items-center space-x-2">
                 {renderRating(trip.driver.rating)}
                 <span className="text-sm text-gray-500">
-                  • {trip.driver.total_trips} trip{trip.driver.total_trips !== 1 ? 's' : ''}
+                  • {trip.driver.total_rides} trip{trip.driver.total_rides !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
           </div>
-          
+
           <div className="text-right">
             <div className="text-2xl font-bold text-gray-900">₹{trip.fare_per_person}</div>
             <div className="text-sm text-gray-600">per person</div>
@@ -186,9 +185,9 @@ export default function TripCard({
               <div className="text-sm text-gray-600">Pickup location</div>
             </div>
           </div>
-          
+
           <div className="ml-1.5 border-l-2 border-dashed border-gray-300 h-4"></div>
-          
+
           <div className="flex items-start space-x-3">
             <div className="w-3 h-3 bg-red-500 rounded-full mt-1.5"></div>
             <div className="flex-1">
@@ -206,7 +205,7 @@ export default function TripCard({
             <ClockIcon className="h-4 w-4" />
             <span>{format(new Date(trip.departure_time), 'MMM d, h:mm a')}</span>
           </div>
-          
+
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <UsersIcon className="h-4 w-4" />
             <span>{trip.available_seats} of {trip.total_seats} seats available</span>
@@ -251,7 +250,7 @@ export default function TripCard({
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
             {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
           </span>
-          
+
           <div className="text-xs text-gray-500">
             Vehicle: {trip.vehicle_type.charAt(0).toUpperCase() + trip.vehicle_type.slice(1)}
           </div>
