@@ -112,7 +112,7 @@ def upgrade() -> None:
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
         sa.Column('email', sa.String(255), nullable=False),
         sa.Column('hashed_password', sa.String(255), nullable=False),
-        sa.Column('full_name', sa.String(100), nullable=True),
+        sa.Column('name', sa.String(100), nullable=True),
         sa.Column('role', sa.String(20), server_default='admin', nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
@@ -193,7 +193,7 @@ def upgrade() -> None:
     
     op.execute(
         sa.text(
-            "INSERT INTO admins (id, email, hashed_password, full_name, role, is_super_admin, created_at) "
+            "INSERT INTO admins (id, email, hashed_password, name, role, is_super_admin, created_at) "
             "VALUES (gen_random_uuid(), 'admin@gotogether.com', :pwd, 'System Admin', 'SUPER_ADMIN', true, now()) "
             "ON CONFLICT (email) DO NOTHING"
         ).bindparams(pwd=hashed_pwd)

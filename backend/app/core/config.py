@@ -45,7 +45,11 @@ class Settings(BaseSettings):
     google_redirect_uri: Optional[str] = "http://localhost:8000/api/auth/google/callback"
     
     # CORS
-    allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://go-together-delta.vercel.app"
+    ]
 
     # Email / SMTP
     smtp_host: Optional[str] = None
