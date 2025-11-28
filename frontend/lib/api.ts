@@ -71,6 +71,11 @@ export const authApi = {
     const response = await api.get('/api/auth/me');
     return response.data;
   },
+
+  signup: async (data: { email: string; password?: string; name: string; phone?: string }): Promise<AuthToken> => {
+    const response = await api.post('/api/auth/signup', data);
+    return response.data;
+  },
 };
 
 // Trips API

@@ -11,72 +11,30 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface SignUpFormData {
   name: string;
-  phone: string;
-  email?: string;
-  otp: string;
+  email: string;
+  password?: string;
+  phone?: string;
 }
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { sendOTP, login, isLoading } = useAuthStore();
-  const [step, setStep] = useState<'details' | 'otp'>('details');
-  const [requestId, setRequestId] = useState<string>('');
+  const { signup, isLoading } = useAuthStore();
 
   const {
     register,
     handleSubmit,
-    watch,
-    getValues,
     formState: { errors },
-  } = useForm<SignUpFormData>({
-    shouldUnregister: false
-  });
+  } = useForm<SignUpFormData>();
 
-  const phoneValue = watch('phone');
-
-  const handleSendOTP = async (data: Omit<SignUpFormData, 'otp'>) => {
+  const onSubmit = async (data: SignUpFormData) => {
     try {
-      console.log('Sending OTP to:', data.phone);
-      const id = await sendOTP(data.phone);
-      console.log('OTP sent, Request ID:', id);
-      setRequestId(id);
-      setStep('otp');
-      toast.success('OTP sent to your phone!');
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
-    }
-  };
-
-  const handleVerifyOTP = async (data: SignUpFormData) => {
-    try {
-      const phone = data.phone || getValues('phone');
-      const name = data.name || getValues('name');
-      const email = data.email || getValues('email');
-
-      console.log('Verifying OTP (Signup):', { phone, name, email, otp: data.otp, requestId });
-
-      if (!phone) throw new Error('Phone number is missing');
-      if (!name) throw new Error('Name is missing');
-
-      await login(phone, data.otp, requestId, {
-        name,
-        email,
-      });
+      console.log('Signing up:', data);
+      await signup(data.email!, data.password!, data.name, data.phone);
       toast.success('Account created successfully! Welcome to GoTogether!');
       router.push('/');
     } catch (error) {
-      console.error('Verify OTP error:', error);
+      console.error('Signup error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create account');
-    }
-  };
-
-  const onSubmit = (data: SignUpFormData) => {
-    console.log('Form submitted:', data);
-    if (step === 'details') {
-      handleSendOTP(data);
-    } else {
-      handleVerifyOTP(data);
     }
   };
 
@@ -101,125 +59,101 @@ export default function SignUpPage() {
           {/* Form */}
           <div className="px-8 py-8">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {step === 'details' ? 'Create Account' : 'Verify Your Phone'}
-              </h2>
-              <p className="text-gray-600">
-                {step === 'details'
-                  ? 'Fill in your details to get started'
-                  : `Enter the OTP sent to ${phoneValue}`
-                }
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h2>
+              <p className="text-gray-600">Fill in your details to get started</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {step === 'details' ? (
-                <>
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Full Name</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        {...register('name', {
-                          required: 'Name is required',
-                          minLength: {
-                            value: 2,
-                            message: 'Name must be at least 2 characters',
-                          },
-                        })}
-                        placeholder="Enter your full name"
-                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
-                      />
-                      <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    </div>
-                    {errors.name && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.name.message}</p>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
-                    <div className="relative">
-                      <input
-                        type="tel"
-                        {...register('phone', {
-                          required: 'Phone number is required',
-                          pattern: {
-                            value: /^\+[1-9]\d{1,14}$/,
-                            message: 'Please enter a valid phone number with country code (e.g., +919876543210)',
-                          },
-                        })}
-                        placeholder="+919876543210"
-                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
-                      />
-                      <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    </div>
-                    {errors.phone && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
-                    )}
-                    <p className="mt-2 text-xs text-gray-500">
-                      Include country code (e.g., +91 for India)
-                    </p>
-                  </div>
-
-                  {/* Email (Optional) */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Email (Optional)</label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        {...register('email', {
-                          pattern: {
-                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                            message: 'Please enter a valid email address',
-                          },
-                        })}
-                        placeholder="your@email.com"
-                        className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
-                      />
-                      <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    </div>
-                    {errors.email && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.email.message}</p>
-                    )}
-                    <p className="mt-2 text-xs text-gray-500">
-                      We'll use this for important updates and receipts
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">OTP Code</label>
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Full Name</label>
+                <div className="relative">
                   <input
                     type="text"
-                    {...register('otp', {
-                      required: 'OTP is required',
-                      pattern: {
-                        value: /^\d{4,6}$/,
-                        message: 'Please enter a valid OTP',
+                    {...register('name', {
+                      required: 'Name is required',
+                      minLength: {
+                        value: 2,
+                        message: 'Name must be at least 2 characters',
                       },
                     })}
-                    placeholder="123456"
-                    className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-center text-2xl tracking-widest font-bold text-gray-900"
-                    maxLength={6}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
                   />
-                  {errors.otp && (
-                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.otp.message}</p>
-                  )}
-                  <p className="mt-2 text-xs text-gray-500 text-center">
-                    Didn't receive the code?{' '}
-                    <button
-                      type="button"
-                      onClick={() => setStep('details')}
-                      className="text-green-600 hover:text-green-700 font-medium"
-                    >
-                      Go back
-                    </button>
-                  </p>
+                  <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 </div>
-              )}
+                {errors.name && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.name.message}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Email</label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    {...register('email', {
+                      required: 'Email is required',
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: 'Please enter a valid email address',
+                      },
+                    })}
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                  />
+                  <EnvelopeIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.email.message}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Password</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 8,
+                        message: 'Password must be at least 8 characters',
+                      },
+                    })}
+                    placeholder="Create a password"
+                    className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                  />
+                  <CheckCircleIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+                {errors.password && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.password.message}</p>
+                )}
+              </div>
+
+              {/* Phone (Optional) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number (Optional)</label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    {...register('phone', {
+                      pattern: {
+                        value: /^\+[1-9]\d{1,14}$/,
+                        message: 'Please enter a valid phone number with country code',
+                      },
+                    })}
+                    placeholder="+919876543210"
+                    className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                  />
+                  <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+                {errors.phone && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
+                )}
+              </div>
 
               <button
                 type="submit"
@@ -229,10 +163,10 @@ export default function SignUpPage() {
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-3" />
-                    {step === 'details' ? 'Sending OTP...' : 'Creating Account...'}
+                    Creating Account...
                   </>
                 ) : (
-                  step === 'details' ? 'Send Verification Code' : 'Create My Account'
+                  'Create My Account'
                 )}
               </button>
             </form>

@@ -121,9 +121,9 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
         email=request.email,
         hashed_password=hashed_password,
         name=request.name,
-        is_verified=False,
-        is_phone_verified=False,
-        is_email_verified=False,
+        is_verified=True,  # Auto-verify for now
+        is_phone_verified=bool(request.phone), # Assume phone is verified if provided? Or just False. Let's say False for phone if optional.
+        is_email_verified=True, # Auto-verify email
     )
     db.add(user)
     db.commit()

@@ -336,6 +336,7 @@ export interface AuthState {
   isLoading: boolean;
   sendOTP: (phone: string) => Promise<string>;
   login: (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string }) => Promise<void>;
+  signup: (email: string, password: string, name: string, phone?: string) => Promise<void>;
   loadUser: (token: string) => Promise<void>;
   logout: () => void;
 }
