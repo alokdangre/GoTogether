@@ -14,13 +14,13 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     
     # Database
-    database_url: str = "postgresql://gotogether:password@localhost:5432/gotogether"
+    database_url: str
     
     # Redis
-    redis_url: str = "redis://localhost:6379"
+    redis_url: str
     
     # JWT
-    secret_key: str = "your-secret-key-change-in-production"
+    secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     
@@ -37,22 +37,28 @@ class Settings(BaseSettings):
     # Maps
     google_maps_api_key: Optional[str] = None
     mapbox_access_token: Optional[str] = None
+
+    # Google Auth
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+    google_redirect_uri: Optional[str] = "http://localhost:8000/api/auth/google/callback"
     
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # Email / SMTP
-    smtp_host: Optional[str] = "smtp.gmail.com"
-    smtp_port: Optional[int] = 587
-    smtp_username: Optional[str] = "alokdangre@gmail.com"
-    smtp_password: Optional[str] = "rlcn nhvz knih bxas"
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
     smtp_use_tls: bool = True
-    smtp_from_email: Optional[str] = "alokdangre@gmail.com"
-    smtp_from_name: Optional[str] = "GoTogether"
+    smtp_from_email: Optional[str] = None
+    smtp_from_name: Optional[str] = None
 
     class Config:
-        env_file = str(BASE_DIR / ".env")
+        env_file = str(BASE_DIR.parent / ".env")
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

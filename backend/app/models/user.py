@@ -7,7 +7,7 @@ from .base import BaseModel
 class User(BaseModel):
     __tablename__ = "users"
     
-    phone = Column(String(20), unique=True, index=True, nullable=False)
+    phone = Column(String(20), unique=True, index=True, nullable=True)
     email = Column(String(255), unique=True, index=True, nullable=True)
     hashed_password = Column(String(255), nullable=True)
     name = Column(String(100), nullable=True)

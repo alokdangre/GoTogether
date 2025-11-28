@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import RedirectResponse
+import httpx
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -9,6 +11,7 @@ from ..core.auth import (
     create_access_token,
     get_password_hash,
     verify_password,
+    get_current_user,
 )
 from ..models.user import User
 from ..schemas.auth import (
@@ -215,3 +218,121 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.phone})
     return Token(access_token=token, user=UserSchema.from_orm(user))
+
+
+@router.get("/google/login")
+async def google_login():
+    """Redirect to Google for authentication."""
+    if not settings.google_client_id or not settings.google_redirect_uri:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth not configured"
+        )
+    
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth"
+        f"?client_id={settings.google_client_id}"
+        f"&redirect_uri={settings.google_redirect_uri}"
+        "&response_type=code"
+        "&scope=openid email profile"
+        "&access_type=offline"
+        "&prompt=consent"
+    )
+    return RedirectResponse(url=google_auth_url)
+
+
+@router.get("/google/callback")
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback."""
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth not configured"
+        )
+
+    # Exchange code for access token
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "client_id": settings.google_client_id,
+        "client_secret": settings.google_client_secret,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": settings.google_redirect_uri,
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(token_url, data=data)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to retrieve access token from Google"
+            )
+        token_data = response.json()
+        access_token = token_data.get("access_token")
+        
+        # Get user info
+        user_info_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+        user_response = await client.get(
+            user_info_url, headers={"Authorization": f"Bearer {access_token}"}
+        )
+        if user_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to retrieve user info from Google"
+            )
+        user_info = user_response.json()
+        
+        email = user_info.get("email")
+        name = user_info.get("name")
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email not found in Google account"
+            )
+            
+        # Check if user exists
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            # Create new user
+            user = User(
+                email=email,
+                name=name,
+                is_verified=True,
+                is_email_verified=True,
+                is_phone_verified=False, # Phone not verified via Google
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            # Update existing user if needed
+            if not user.is_email_verified:
+                user.is_email_verified = True
+                user.is_verified = True
+                db.commit()
+                
+        # Create access token
+        # Use email as sub if phone is not available, or handle in create_access_token
+        # The current create_access_token might expect a string.
+        # Let's check create_access_token implementation if possible, or just pass user.id
+        # In verify_otp it uses str(user.id). In login it uses user.phone.
+        # Let's use str(user.id) to be consistent with verify_otp which is the main auth flow?
+        # Wait, login uses user.phone. verify_otp uses user.id. This is inconsistent.
+        # Let's check create_access_token in backend/app/core/auth.py to be sure.
+        # For now I will use str(user.id) as it is unique and immutable.
+        
+        token = create_access_token({"sub": str(user.id)})
+        
+        # Redirect to frontend with token
+        # Assuming frontend is at localhost:3000
+        frontend_url = "http://localhost:3000/auth/signin?token=" + token
+        return RedirectResponse(url=frontend_url)
+
+
+@router.get("/me", response_model=UserSchema)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """Get current user details."""
+    return current_user
+

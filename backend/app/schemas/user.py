@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class UserBase(BaseModel):
-    phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Phone number in E.164 format")
+    phone: Optional[str] = Field(None, pattern=r'^\+[1-9]\d{1,14}$', description="Phone number in E.164 format")
     email: Optional[str] = Field(None, max_length=255)
     name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = None

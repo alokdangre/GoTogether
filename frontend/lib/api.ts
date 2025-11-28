@@ -66,6 +66,11 @@ export const authApi = {
     const response = await api.post('/api/auth/verify', data);
     return response.data;
   },
+
+  getMe: async (): Promise<User> => {
+    const response = await api.get('/api/auth/me');
+    return response.data;
+  },
 };
 
 // Trips API

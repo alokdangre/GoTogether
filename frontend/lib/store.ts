@@ -61,6 +61,29 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      loadUser: async (token: string): Promise<void> => {
+        set({ isLoading: true });
+        try {
+          localStorage.setItem('auth_token', token);
+          const user = await authApi.getMe();
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          localStorage.removeItem('auth_token');
+          set({
+            token: null,
+            user: null,
+            isAuthenticated: false,
+            isLoading: false
+          });
+          throw new Error(handleApiError(error));
+        }
+      },
+
       logout: () => {
         localStorage.removeItem('auth_token');
         set({
