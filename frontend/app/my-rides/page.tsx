@@ -20,7 +20,7 @@ export default function MyRidesPage() {
 
     const fetchData = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const headers = {
                 'Authorization': `Bearer ${token}`
             };
@@ -55,7 +55,7 @@ export default function MyRidesPage() {
         if (!confirm('Are you sure you want to cancel this request?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ride-requests/${requestId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -64,6 +64,26 @@ export default function MyRidesPage() {
         } catch (error) {
             console.error('Error canceling request:', error);
             alert('Failed to cancel request');
+        }
+    };
+
+    const acceptRide = async (requestId: string) => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ride-requests/${requestId}/accept`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.detail || 'Failed to accept ride');
+            }
+
+            fetchData();
+        } catch (error) {
+            console.error('Error accepting ride:', error);
+            alert('Failed to accept ride');
         }
     };
 
@@ -182,6 +202,15 @@ export default function MyRidesPage() {
                                                     className="mt-3 w-full sm:w-auto px-4 py-2 text-sm text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
                                                 >
                                                     Cancel Request
+                                                </button>
+                                            )}
+
+                                            {request.status === 'grouped' && (
+                                                <button
+                                                    onClick={() => acceptRide(request.id)}
+                                                    className="mt-3 w-full sm:w-auto px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                                                >
+                                                    Accept Ride
                                                 </button>
                                             )}
                                         </div>

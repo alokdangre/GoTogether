@@ -11,6 +11,7 @@ interface DashboardStats {
     totalDrivers: number;
     totalTrips: number;
     activeTrips: number;
+    totalRequests: number;
 }
 
 export default function AdminDashboardPage() {
@@ -20,6 +21,7 @@ export default function AdminDashboardPage() {
         totalDrivers: 0,
         totalTrips: 0,
         activeTrips: 0,
+        totalRequests: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -36,10 +38,11 @@ export default function AdminDashboardPage() {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const headers = { Authorization: `Bearer ${token}` };
 
-                const [usersRes, driversRes, tripsRes] = await Promise.all([
+                const [usersRes, driversRes, tripsRes, requestsRes] = await Promise.all([
                     axios.get(`${apiUrl}/api/admin/users?limit=1000`, { headers }),
                     axios.get(`${apiUrl}/api/admin/drivers?limit=1000`, { headers }),
                     axios.get(`${apiUrl}/api/admin/trips?limit=1000`, { headers }),
+                    axios.get(`${apiUrl}/api/admin/ride-requests?limit=1000`, { headers }),
                 ]);
 
                 setStats({
@@ -47,6 +50,7 @@ export default function AdminDashboardPage() {
                     totalDrivers: driversRes.data.length,
                     totalTrips: tripsRes.data.length,
                     activeTrips: tripsRes.data.filter((t: any) => t.status === 'active').length,
+                    totalRequests: requestsRes.data.length,
                 });
             } catch (error: any) {
                 if (error.response?.status === 401) {
@@ -72,6 +76,13 @@ export default function AdminDashboardPage() {
 
     const statCards = [
         {
+            title: 'Ride Requests',
+            value: stats.totalRequests,
+            icon: MapPin,
+            color: 'from-pink-500 to-pink-600',
+            link: '/admin/requests',
+        },
+        {
             title: 'Total Users',
             value: stats.totalUsers,
             icon: Users,
@@ -90,13 +101,6 @@ export default function AdminDashboardPage() {
             value: stats.totalTrips,
             icon: MapPin,
             color: 'from-purple-500 to-purple-600',
-            link: '/admin/trips',
-        },
-        {
-            title: 'Active Trips',
-            value: stats.activeTrips,
-            icon: TrendingUp,
-            color: 'from-orange-500 to-orange-600',
             link: '/admin/trips',
         },
     ];
@@ -154,7 +158,18 @@ export default function AdminDashboardPage() {
                 {/* Quick Actions */}
                 <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
                     <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button
+                            onClick={() => router.push('/admin/requests')}
+                            className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition-all group"
+                        >
+                            <div className="flex items-center">
+                                <MapPin className="h-5 w-5 text-pink-600 mr-3" />
+                                <span className="font-medium text-gray-900">View Requests</span>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
+                        </button>
+
                         <button
                             onClick={() => router.push('/admin/drivers')}
                             className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"

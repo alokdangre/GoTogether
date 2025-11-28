@@ -8,7 +8,9 @@ import toast from 'react-hot-toast';
 
 interface Driver {
     id: string;
-    user: any;
+    name: string;
+    phone: string;
+    email?: string;
     license_number?: string;
     vehicle_type?: string;
     vehicle_make?: string;
@@ -16,7 +18,7 @@ interface Driver {
     vehicle_plate_number?: string;
     is_verified: boolean;
     is_active: boolean;
-    total_trips: number;
+    total_rides: number;
     rating: number;
 }
 
@@ -248,8 +250,8 @@ export default function AdminDriversPage() {
                                     drivers.map((driver) => (
                                         <tr key={driver.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-900">{driver.user?.name || 'N/A'}</div>
-                                                <div className="text-sm text-gray-500">{driver.user?.phone}</div>
+                                                <div className="font-medium text-gray-900">{driver.name || 'N/A'}</div>
+                                                <div className="text-sm text-gray-500">{driver.phone}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-900">
@@ -259,7 +261,7 @@ export default function AdminDriversPage() {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">{driver.license_number || 'N/A'}</td>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-900">{driver.total_trips} trips</div>
+                                                <div className="text-sm text-gray-900">{driver.total_rides} trips</div>
                                                 <div className="text-sm text-gray-500">⭐ {driver.rating.toFixed(1)}</div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -272,8 +274,8 @@ export default function AdminDriversPage() {
                                                 <button
                                                     onClick={() => handleVerifyDriver(driver.id, driver.is_verified)}
                                                     className={`px-3 py-1 text-xs font-medium rounded-lg ${driver.is_verified
-                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                        : 'bg-green-100 text-green-700 hover:bg-green-200'
                                                         }`}
                                                 >
                                                     {driver.is_verified ? 'Unverify' : 'Verify'}

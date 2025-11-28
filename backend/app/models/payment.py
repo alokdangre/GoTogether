@@ -26,7 +26,7 @@ class SplitStatus(PyEnum):
 class Payment(BaseModel):
     __tablename__ = "payments"
     
-    trip_id = Column(UUID(as_uuid=True), ForeignKey("trips.id"), nullable=False, unique=True)
+    grouped_ride_id = Column(UUID(as_uuid=True), ForeignKey("grouped_rides.id"), nullable=False, unique=True)
     total_fare = Column(Float, nullable=False)
     currency = Column(String(3), default="INR")
     status = Column(Enum(PaymentStatus), default=PaymentStatus.PENDING)
@@ -35,11 +35,11 @@ class Payment(BaseModel):
     gateway_order_id = Column(String(100), nullable=True)
     
     # Relationships
-    trip = relationship("Trip", back_populates="payment")
+    grouped_ride = relationship("GroupedRide", back_populates="payment")
     splits = relationship("PaymentSplit", back_populates="payment", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Payment(trip_id={self.trip_id}, total_fare={self.total_fare}, status={self.status})>"
+        return f"<Payment(grouped_ride_id={self.grouped_ride_id}, total_fare={self.total_fare}, status={self.status})>"
 
 
 class PaymentSplit(BaseModel):

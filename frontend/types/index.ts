@@ -183,6 +183,8 @@ export interface Location {
   address?: string;
 }
 
+export type LocationWithAddress = Location;
+
 // Form types
 export interface RideRequestFormData {
   source: Location;

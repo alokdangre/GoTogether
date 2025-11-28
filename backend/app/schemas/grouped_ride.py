@@ -17,6 +17,15 @@ class GroupedRideCreate(BaseModel):
     destination_address: str = Field(..., max_length=500)
 
 
+class GroupedRideAdminCreate(BaseModel):
+    ride_request_ids: List[uuid.UUID] = Field(..., min_items=1)
+    driver_id: uuid.UUID
+    pickup_time: datetime
+    pickup_location: str = Field(..., max_length=500)
+    destination_address: str = Field(..., max_length=500)
+    charged_price: float = Field(..., gt=0)
+
+
 class GroupedRide(GroupedRideBase):
     id: uuid.UUID
     admin_id: uuid.UUID

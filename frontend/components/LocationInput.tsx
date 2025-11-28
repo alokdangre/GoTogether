@@ -22,12 +22,12 @@ const MOCK_LOCATIONS = [
   { lat: 22.240, lng: 84.920, address: 'Ambagan, Rourkela' },
 ];
 
-export default function LocationInput({ 
-  value, 
-  onChange, 
-  placeholder = 'Enter location', 
+export default function LocationInput({
+  value,
+  onChange,
+  placeholder = 'Enter location',
   error,
-  className = '' 
+  className = ''
 }: LocationInputProps) {
   const [inputValue, setInputValue] = useState(value?.address || '');
   const [suggestions, setSuggestions] = useState<LocationWithAddress[]>([]);
@@ -49,15 +49,15 @@ export default function LocationInput({
     }
 
     setIsLoading(true);
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     // Mock search - replace with actual geocoding API
     const filtered = MOCK_LOCATIONS.filter(location =>
       location.address.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     setSuggestions(filtered);
     setIsLoading(false);
   };
@@ -66,7 +66,7 @@ export default function LocationInput({
     const query = e.target.value;
     setInputValue(query);
     setShowSuggestions(true);
-    
+
     if (query.trim()) {
       searchLocations(query);
     } else {
@@ -106,20 +106,23 @@ export default function LocationInput({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           placeholder={placeholder}
-          className={`form-input pl-10 ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+          className={`w-full pl-12 pr-10 py-3 sm:py-4 border border-gray-200 rounded-xl 
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
+            transition-all text-sm sm:text-base text-gray-900 placeholder:text-gray-400
+            ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
         />
-        <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-        
+        <MapPinIcon className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+
         {isLoading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+          <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
           </div>
         )}
       </div>
 
       {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div 
+        <div
           ref={suggestionsRef}
           className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
         >

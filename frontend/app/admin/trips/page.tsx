@@ -8,14 +8,13 @@ import toast from 'react-hot-toast';
 
 interface Trip {
     id: string;
-    driver: any;
-    origin_address: string;
-    dest_address: string;
-    departure_time: string;
+    driver_name?: string;
+    pickup_location: string;
+    destination: string;
+    scheduled_time: string;
     total_seats: number;
     available_seats: number;
-    fare_per_person: number;
-    vehicle_type: string;
+    fare_per_seat: number;
     status: string;
     created_at: string;
 }
@@ -57,9 +56,9 @@ export default function AdminTripsPage() {
 
     const filteredTrips = trips.filter(
         (trip) =>
-            trip.origin_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            trip.dest_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            trip.driver?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+            trip.pickup_location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            trip.destination?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            trip.driver_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -108,9 +107,9 @@ export default function AdminTripsPage() {
                             <div key={trip.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden">
                                 {/* Status Bar */}
                                 <div className={`h-2 ${trip.status === 'active' ? 'bg-green-500' :
-                                        trip.status === 'completed' ? 'bg-blue-500' :
-                                            trip.status === 'cancelled' ? 'bg-red-500' :
-                                                'bg-gray-500'
+                                    trip.status === 'completed' ? 'bg-blue-500' :
+                                        trip.status === 'cancelled' ? 'bg-red-500' :
+                                            'bg-gray-500'
                                     }`} />
 
                                 <div className="p-6">
@@ -118,12 +117,11 @@ export default function AdminTripsPage() {
                                     <div className="flex items-center mb-4">
                                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
                                             <span className="text-purple-600 font-bold">
-                                                {trip.driver?.name?.charAt(0) || 'D'}
+                                                {trip.driver_name?.charAt(0) || 'D'}
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{trip.driver?.name || 'Unknown'}</p>
-                                            <p className="text-sm text-gray-500">{trip.vehicle_type}</p>
+                                            <p className="font-medium text-gray-900">{trip.driver_name || 'Unknown'}</p>
                                         </div>
                                     </div>
 
@@ -131,11 +129,11 @@ export default function AdminTripsPage() {
                                     <div className="space-y-2 mb-4">
                                         <div className="flex items-start">
                                             <div className="w-3 h-3 bg-green-500 rounded-full mt-1 mr-3 flex-shrink-0" />
-                                            <p className="text-sm text-gray-900">{trip.origin_address || 'Origin'}</p>
+                                            <p className="text-sm text-gray-900">{trip.pickup_location || 'Origin'}</p>
                                         </div>
                                         <div className="flex items-start">
                                             <div className="w-3 h-3 bg-red-500 rounded-full mt-1 mr-3 flex-shrink-0" />
-                                            <p className="text-sm text-gray-900">{trip.dest_address || 'Destination'}</p>
+                                            <p className="text-sm text-gray-900">{trip.destination || 'Destination'}</p>
                                         </div>
                                     </div>
 
@@ -144,7 +142,7 @@ export default function AdminTripsPage() {
                                         <div>
                                             <p className="text-xs text-gray-500">Departure</p>
                                             <p className="text-sm font-medium text-gray-900">
-                                                {new Date(trip.departure_time).toLocaleDateString()}
+                                                {trip.scheduled_time ? new Date(trip.scheduled_time).toLocaleDateString() : 'N/A'}
                                             </p>
                                         </div>
                                         <div>
@@ -158,14 +156,14 @@ export default function AdminTripsPage() {
                                     {/* Footer */}
                                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${trip.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                trip.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                                    trip.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                        'bg-gray-100 text-gray-800'
+                                            trip.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                trip.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
                                             }`}>
                                             {trip.status}
                                         </span>
                                         <span className="text-lg font-bold text-purple-600">
-                                            ₹{trip.fare_per_person}
+                                            ₹{trip.fare_per_seat}
                                         </span>
                                     </div>
                                 </div>

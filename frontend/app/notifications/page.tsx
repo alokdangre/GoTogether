@@ -16,7 +16,7 @@ export default function NotificationsPage() {
 
     const fetchNotifications = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -31,7 +31,7 @@ export default function NotificationsPage() {
 
     const handleAccept = async (notificationId: string) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${notificationId}/accept`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -48,7 +48,7 @@ export default function NotificationsPage() {
         if (!confirm('Are you sure you want to reject this ride?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${notificationId}/reject`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }

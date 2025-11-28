@@ -32,6 +32,8 @@ class GroupedRide(BaseModel):
     ride_requests = relationship("RideRequest", back_populates="grouped_ride")
     notifications = relationship("RideNotification", back_populates="grouped_ride", cascade="all, delete-orphan")
     ratings = relationship("Rating", back_populates="grouped_ride", cascade="all, delete-orphan")
+    payment = relationship("Payment", back_populates="grouped_ride", uselist=False, cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="grouped_ride", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<GroupedRide(id={self.id}, driver_id={self.driver_id}, status={self.status})>"

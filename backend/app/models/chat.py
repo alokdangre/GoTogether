@@ -7,14 +7,14 @@ from .base import BaseModel
 class ChatMessage(BaseModel):
     __tablename__ = "chat_messages"
     
-    trip_id = Column(UUID(as_uuid=True), ForeignKey("trips.id"), nullable=False, index=True)
+    grouped_ride_id = Column(UUID(as_uuid=True), ForeignKey("grouped_rides.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     message_type = Column(String(20), default="text")  # text, location, system
     
     # Relationships
-    trip = relationship("Trip", back_populates="chat_messages")
-    user = relationship("User", back_populates="chat_messages")
+    grouped_ride = relationship("GroupedRide", back_populates="chat_messages")
+    user = relationship("User")
     
     def __repr__(self):
-        return f"<ChatMessage(trip_id={self.trip_id}, user_id={self.user_id})>"
+        return f"<ChatMessage(grouped_ride_id={self.grouped_ride_id}, user_id={self.user_id})>"

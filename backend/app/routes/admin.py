@@ -13,7 +13,9 @@ from ..models.admin import Admin
 from ..models.user import User
 from ..models.driver import Driver
 from ..models.grouped_ride import GroupedRide
+from ..models.ride_request import RideRequest
 from ..schemas.auth import AdminLogin, AdminToken, DriverCreate
+from ..schemas.grouped_ride import GroupedRideAdminCreate
 from ..schemas.user import User as UserSchema
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -93,7 +95,7 @@ async def create_driver(
 @router.get("/users", response_model=List[UserSchema])
 async def list_users(
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=1000),
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
@@ -122,7 +124,7 @@ async def get_user(
 @router.get("/drivers")
 async def list_drivers(
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=1000),
     is_verified: Optional[bool] = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
@@ -193,10 +195,108 @@ async def update_driver(
     return {"message": "Driver updated successfully"}
 
 
-@router.get("/rides")
+@router.get("/ride-requests")
+async def list_ride_requests(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=1000),
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """List all ride requests with pagination (admin only)"""
+    query = db.query(RideRequest)
+    
+    if status:
+        query = query.filter(RideRequest.status == status)
+    
+    # Order by created_at desc
+    query = query.order_by(RideRequest.created_at.desc())
+    
+    requests = query.offset(skip).limit(limit).all()
+    
+    result = []
+    for req in requests:
+        req_data = {
+            "id": str(req.id),
+            "user_id": str(req.user_id),
+            "user_name": req.user.name if req.user else None,
+            "user_phone": req.user.phone if req.user else None,
+            "source_address": req.source_address,
+            "destination_address": req.destination_address,
+            "requested_time": req.requested_time.isoformat(),
+            "passenger_count": req.passenger_count,
+            "status": req.status,
+            "created_at": req.created_at.isoformat(),
+            "is_railway_station": req.is_railway_station,
+            "train_time": req.train_time.isoformat() if req.train_time else None,
+        }
+        result.append(req_data)
+    
+    return result
+
+
+
+
+
+@router.post("/trips/create", status_code=status.HTTP_201_CREATED)
+async def create_grouped_ride(
+    request: GroupedRideAdminCreate,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Create a grouped ride from requests (admin only)"""
+    # Verify driver exists
+    driver = db.query(Driver).filter(Driver.id == request.driver_id).first()
+    if not driver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found"
+        )
+    
+    # Verify requests exist and are pending
+    ride_requests = db.query(RideRequest).filter(RideRequest.id.in_(request.ride_request_ids)).all()
+    if len(ride_requests) != len(request.ride_request_ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more ride requests not found"
+        )
+    
+    for req in ride_requests:
+        if req.status != "pending":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Ride request {req.id} is not pending"
+            )
+    
+    # Create GroupedRide
+    grouped_ride = GroupedRide(
+        admin_id=admin.id,
+        driver_id=request.driver_id,
+        destination_address=request.destination_address,
+        pickup_time=request.pickup_time,
+        pickup_location=request.pickup_location,
+        charged_price=request.charged_price,
+        status="pending_acceptance"
+    )
+    
+    db.add(grouped_ride)
+    db.flush() # Get ID
+    
+    # Update requests
+    for req in ride_requests:
+        req.grouped_ride_id = grouped_ride.id
+        req.status = "grouped"
+    
+    db.commit()
+    db.refresh(grouped_ride)
+    
+    return {"message": "Grouped ride created successfully", "id": str(grouped_ride.id)}
+
+
+@router.get("/trips")
 async def list_rides(
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=1000),
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
@@ -210,11 +310,11 @@ async def list_rides(
             "driver_id": str(ride.driver_id) if ride.driver_id else None,
             "driver_name": ride.driver.name if ride.driver else None,
             "pickup_location": ride.pickup_location,
-            "destination": ride.destination,
-            "scheduled_time": ride.scheduled_time.isoformat() if ride.scheduled_time else None,
-            "total_seats": ride.total_seats,
-            "available_seats": ride.available_seats,
-            "fare_per_seat": float(ride.fare_per_seat) if ride.fare_per_seat else None,
+            "destination": ride.destination_address,
+            "scheduled_time": ride.pickup_time.isoformat() if ride.pickup_time else None,
+            "total_seats": 4,  # Default to 4 for now
+            "available_seats": 4 - len(ride.ride_requests) if ride.ride_requests else 4,
+            "fare_per_seat": float(ride.charged_price) if ride.charged_price else None,
             "status": ride.status,
             "created_at": ride.created_at.isoformat(),
         }
@@ -223,7 +323,7 @@ async def list_rides(
     return result
 
 
-@router.get("/rides/{ride_id}")
+@router.get("/trips/{ride_id}")
 async def get_ride(
     ride_id: str,
     db: Session = Depends(get_db),
@@ -242,11 +342,11 @@ async def get_ride(
         "driver_id": str(ride.driver_id) if ride.driver_id else None,
         "driver_name": ride.driver.name if ride.driver else None,
         "pickup_location": ride.pickup_location,
-        "destination": ride.destination,
-        "scheduled_time": ride.scheduled_time.isoformat() if ride.scheduled_time else None,
-        "total_seats": ride.total_seats,
-        "available_seats": ride.available_seats,
-        "fare_per_seat": float(ride.fare_per_seat) if ride.fare_per_seat else None,
+        "destination": ride.destination_address,
+        "scheduled_time": ride.pickup_time.isoformat() if ride.pickup_time else None,
+        "total_seats": 4,
+        "available_seats": 4 - len(ride.ride_requests) if ride.ride_requests else 4,
+        "fare_per_seat": float(ride.charged_price) if ride.charged_price else None,
         "status": ride.status,
         "created_at": ride.created_at.isoformat(),
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { CarIcon, UserIcon, PlusIcon, HomeIcon } from 'lucide-react';
 
 import { useAuthStore } from '@/lib/store';
@@ -14,6 +14,12 @@ export default function Header() {
     logout();
     router.push('/');
   };
+
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">

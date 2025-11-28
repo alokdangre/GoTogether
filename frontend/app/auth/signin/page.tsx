@@ -25,33 +25,48 @@ export default function SignInPage() {
     register,
     handleSubmit,
     watch,
+    getValues,
     formState: { errors },
-  } = useForm<SignInFormData>();
+  } = useForm<SignInFormData>({
+    shouldUnregister: false // Ensure values are kept when inputs are unmounted
+  });
 
   const phoneValue = watch('phone');
 
   const handleSendOTP = async (data: { phone: string }) => {
     try {
+      console.log('Sending OTP to:', data.phone);
       const id = await sendOTP(data.phone);
+      console.log('OTP sent, Request ID:', id);
       setRequestId(id);
       setStep('otp');
       toast.success('OTP sent to your phone!');
     } catch (error) {
+      console.error('Send OTP error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
     }
   };
 
   const handleVerifyOTP = async (data: SignInFormData) => {
     try {
-      await login(data.phone, data.otp, requestId);
+      const phone = data.phone || getValues('phone');
+      console.log('Verifying OTP:', { phone, otp: data.otp, requestId });
+
+      if (!phone) {
+        throw new Error('Phone number is missing');
+      }
+
+      await login(phone, data.otp, requestId);
       toast.success('Welcome to GoTogether!');
       router.push('/');
     } catch (error) {
+      console.error('Verify OTP error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to verify OTP');
     }
   };
 
   const onSubmit = (data: SignInFormData) => {
+    console.log('Form submitted:', data);
     if (step === 'phone') {
       handleSendOTP({ phone: data.phone });
     } else {
@@ -84,7 +99,7 @@ export default function SignInPage() {
                 {step === 'phone' ? 'Sign In' : 'Verify OTP'}
               </h2>
               <p className="text-gray-600">
-                {step === 'phone' 
+                {step === 'phone'
                   ? 'Enter your phone number to continue'
                   : `Enter the OTP sent to ${phoneValue}`
                 }

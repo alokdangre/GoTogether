@@ -6,8 +6,8 @@ from .base import BaseModel
 
 
 class AdminRole(str, enum.Enum):
-    SUPER_ADMIN = "super_admin"
-    ADMIN = "admin"
+    SUPER_ADMIN = "SUPER_ADMIN"
+    ADMIN = "ADMIN"
 
 
 class Admin(BaseModel):

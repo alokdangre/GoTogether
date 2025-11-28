@@ -26,7 +26,7 @@ export default function RateRidePage() {
 
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/my-rides/${rideId}/rate`, {
                 method: 'POST',
                 headers: {

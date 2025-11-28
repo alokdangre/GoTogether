@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.core.auth import get_password_hash
-from app.models.admin import Admin
+from app.models.admin import Admin, AdminRole
 
 
 async def create_admin():
@@ -23,16 +23,25 @@ async def create_admin():
         existing_admin = db.query(Admin).filter(Admin.email == "admin@gotogether.com").first()
         
         if existing_admin:
-            print("❌ Admin user already exists!")
+            print("✅ Admin user already exists!")
+            # Ensure role is correct (fix for legacy data)
+            if existing_admin.role != AdminRole.SUPER_ADMIN:
+                print("Updating admin role to SUPER_ADMIN...")
+                existing_admin.role = AdminRole.SUPER_ADMIN
+                db.commit()
+                print("✅ Admin role updated!")
+            
             print(f"   Email: {existing_admin.email}")
             return
         
         # Create new admin
         admin = Admin(
             email="admin@gotogether.com",
-            hashed_password=get_password_hash("admin123"),  # Change this password!
+            hashed_password=get_password_hash("admin123"),
             name="Admin User",
-            is_active=True
+            role=AdminRole.SUPER_ADMIN,
+            is_active=True,
+            is_super_admin=True
         )
         
         db.add(admin)

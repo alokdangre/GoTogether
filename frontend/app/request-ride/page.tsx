@@ -29,36 +29,46 @@ export default function RequestRidePage() {
     const onSubmit = async (data: any) => {
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
+
+            const requestBody = {
+                source_lat: data.source_lat,
+                source_lng: data.source_lng,
+                source_address: data.source_address,
+                destination_lat: data.destination_lat,
+                destination_lng: data.destination_lng,
+                destination_address: data.destination_address,
+                is_railway_station: isRailwayStation,
+                train_time: isRailwayStation && data.train_time ? new Date(data.train_time).toISOString() : null,
+                requested_time: new Date(data.requested_time).toISOString(),
+                passenger_count: parseInt(data.passenger_count),
+                additional_info: data.additional_info || null
+            };
+
+            console.log('Sending ride request:', requestBody);
+
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ride-requests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    source_lat: data.source_lat,
-                    source_lng: data.source_lng,
-                    source_address: data.source_address,
-                    destination_lat: data.destination_lat,
-                    destination_lng: data.destination_lng,
-                    destination_address: data.destination_address,
-                    is_railway_station: isRailwayStation,
-                    train_time: isRailwayStation && data.train_time ? new Date(data.train_time).toISOString() : null,
-                    requested_time: new Date(data.requested_time).toISOString(),
-                    passenger_count: parseInt(data.passenger_count),
-                    additional_info: data.additional_info
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create ride request');
+                const errorData = await response.json().catch(() => ({ detail: 'Failed to create ride request' }));
+                console.error('API Error:', errorData);
+                throw new Error(errorData.detail || 'Failed to create ride request');
             }
 
+            const result = await response.json();
+            console.log('Ride request created:', result);
             router.push('/my-rides');
         } catch (error) {
             console.error('Error creating ride request:', error);
-            alert('Failed to create ride request. Please try again.');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create ride request. Please try again.';
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -101,7 +111,7 @@ export default function RequestRidePage() {
                             <div>
                                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Pickup Location</label>
                                 <LocationInput
-                                    value={watchedSource}
+                                    value={watchedSource || undefined}
                                     onChange={(location: Location) => {
                                         setValue('source_lat', location.lat);
                                         setValue('source_lng', location.lng);
@@ -115,7 +125,7 @@ export default function RequestRidePage() {
                             <div>
                                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Destination</label>
                                 <LocationInput
-                                    value={watchedDestination}
+                                    value={watchedDestination || undefined}
                                     onChange={(location: Location) => {
                                         setValue('destination_lat', location.lat);
                                         setValue('destination_lng', location.lng);

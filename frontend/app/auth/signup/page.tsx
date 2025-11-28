@@ -26,36 +26,53 @@ export default function SignUpPage() {
     register,
     handleSubmit,
     watch,
+    getValues,
     formState: { errors },
-  } = useForm<SignUpFormData>();
+  } = useForm<SignUpFormData>({
+    shouldUnregister: false
+  });
 
   const phoneValue = watch('phone');
 
   const handleSendOTP = async (data: Omit<SignUpFormData, 'otp'>) => {
     try {
+      console.log('Sending OTP to:', data.phone);
       const id = await sendOTP(data.phone);
+      console.log('OTP sent, Request ID:', id);
       setRequestId(id);
       setStep('otp');
       toast.success('OTP sent to your phone!');
     } catch (error) {
+      console.error('Send OTP error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
     }
   };
 
   const handleVerifyOTP = async (data: SignUpFormData) => {
     try {
-      await login(data.phone, data.otp, requestId, {
-        name: data.name,
-        email: data.email,
+      const phone = data.phone || getValues('phone');
+      const name = data.name || getValues('name');
+      const email = data.email || getValues('email');
+
+      console.log('Verifying OTP (Signup):', { phone, name, email, otp: data.otp, requestId });
+
+      if (!phone) throw new Error('Phone number is missing');
+      if (!name) throw new Error('Name is missing');
+
+      await login(phone, data.otp, requestId, {
+        name,
+        email,
       });
       toast.success('Account created successfully! Welcome to GoTogether!');
       router.push('/');
     } catch (error) {
+      console.error('Verify OTP error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create account');
     }
   };
 
   const onSubmit = (data: SignUpFormData) => {
+    console.log('Form submitted:', data);
     if (step === 'details') {
       handleSendOTP(data);
     } else {
