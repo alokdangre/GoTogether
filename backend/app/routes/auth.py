@@ -10,9 +10,7 @@ from ..core.auth import (
     get_password_hash,
     verify_password,
 )
-from ..models.user import User, UserRole
-from ..models.driver import Driver
-from ..models.rider import Rider
+from ..models.user import User
 from ..schemas.auth import (
     OTPRequest,
     OTPVerify,
@@ -59,25 +57,17 @@ async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.phone == request.phone).first()
 
     if not user:
-        # If user doesn't exist and we have signup data, create new user as RIDER
+        # If user doesn't exist and we have signup data, create new user
         if hasattr(request, 'name') and request.name:
             user = User(
                 phone=request.phone,
                 name=request.name,
                 email=getattr(request, 'email', None),
-                role=UserRole.RIDER,  # Always create as RIDER
                 is_verified=False,
                 is_phone_verified=True,
                 is_email_verified=False,
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
-
-            # Always create Rider profile for new signups
-            rider_profile = Rider(id=user.id)
-            db.add(rider_profile)
-
             db.commit()
             db.refresh(user)
         else:
@@ -92,7 +82,7 @@ async def verify_otp(request: OTPVerify, db: Session = Depends(get_db)):
         db.commit()
     
     # Create access token
-    token = create_access_token({"sub": str(user.id), "role": user.role.value})
+    token = create_access_token({"sub": str(user.id)})
     
     return Token(
         access_token=token,
@@ -122,14 +112,12 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
         )
 
     hashed_password = get_password_hash(request.password)
-    role = request.role or UserRole.RIDER
 
     user = User(
         phone=request.phone,
         email=request.email,
         hashed_password=hashed_password,
         name=request.name,
-        role=role,
         is_verified=False,
         is_phone_verified=False,
         is_email_verified=False,
@@ -138,18 +126,7 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    # Create role-specific profiles
-    if role in (UserRole.DRIVER, UserRole.BOTH):
-        driver_profile = Driver(id=user.id)
-        db.add(driver_profile)
-    if role in (UserRole.RIDER, UserRole.BOTH):
-        rider_profile = Rider(id=user.id)
-        db.add(rider_profile)
-
-    db.commit()
-    db.refresh(user)
-
-    token = create_access_token({"sub": str(user.id), "role": user.role.value})
+    token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token, user=UserSchema.from_orm(user))
 
 

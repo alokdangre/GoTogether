@@ -6,7 +6,7 @@ from typing import List
 from ..core.database import get_db
 from ..core.auth import get_current_user, require_driver_user
 from ..models.user import User
-from ..models.trip import Trip, TripMember, MemberStatus
+from ..models.grouped_ride import GroupedRide
 from ..models.payment import Payment, PaymentSplit, PaymentStatus, PaymentGateway, SplitStatus
 from ..schemas.payment import PaymentCreate, Payment as PaymentSchema, PaymentSplit as PaymentSplitSchema
 
@@ -20,11 +20,11 @@ async def create_payment_split(
     db: Session = Depends(get_db)
 ):
     """Calculate and initiate payment split for a trip"""
-    trip = db.query(Trip).filter(Trip.id == payment_data.trip_id).first()
+    trip = db.query(GroupedRide).filter(GroupedRide.id == payment_data.trip_id).first()
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Trip not found"
+            detail="GroupedRide not found"
         )
     
     # Only driver can initiate payment
@@ -43,10 +43,10 @@ async def create_payment_split(
         )
     
     # Get all approved passenger members
-    approved_members = db.query(TripMember).filter(
+    approved_members = db.query(RideRequest).filter(
         and_(
-            TripMember.trip_id == trip.id,
-            TripMember.status == MemberStatus.APPROVED
+            RideRequest.trip_id == trip.id,
+            RideRequest.status == "accepted"
         )
     ).all()
 

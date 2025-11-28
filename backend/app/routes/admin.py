@@ -10,10 +10,9 @@ from ..core.auth import (
     verify_password,
 )
 from ..models.admin import Admin
-from ..models.user import User, UserRole
+from ..models.user import User
 from ..models.driver import Driver
-from ..models.rider import Rider
-from ..models.trip import Trip
+from ..models.grouped_ride import GroupedRide
 from ..schemas.auth import AdminLogin, AdminToken, DriverCreate
 from ..schemas.user import User as UserSchema
 
@@ -41,47 +40,34 @@ async def admin_login(request: AdminLogin, db: Session = Depends(get_db)):
     return AdminToken(access_token=token)
 
 
-@router.post("/drivers", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/drivers", status_code=status.HTTP_201_CREATED)
 async def create_driver(
     request: DriverCreate,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    """Create a new driver account (admin only)"""
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.phone == request.phone).first()
-    if existing_user:
+    """Create a new driver (admin only)"""
+    # Check if driver with phone already exists
+    existing_driver = db.query(Driver).filter(Driver.phone == request.phone).first()
+    if existing_driver:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="User with this phone number already exists"
+            detail="Driver with this phone number already exists"
         )
     
     if request.email:
-        existing_email = db.query(User).filter(User.email == request.email).first()
+        existing_email = db.query(Driver).filter(Driver.email == request.email).first()
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User with this email already exists"
+                detail="Driver with this email already exists"
             )
     
-    # Create user with DRIVER role
-    user = User(
+    # Create standalone driver entity
+    driver = Driver(
         phone=request.phone,
         name=request.name,
         email=request.email,
-        role=UserRole.DRIVER,
-        is_verified=True,  # Admin-created drivers are pre-verified
-        is_phone_verified=True,
-        is_email_verified=bool(request.email),
-        is_active=True,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Create driver profile
-    driver_profile = Driver(
-        id=user.id,
         license_number=request.license_number,
         vehicle_type=request.vehicle_type,
         vehicle_make=request.vehicle_make,
@@ -89,28 +75,30 @@ async def create_driver(
         vehicle_color=request.vehicle_color,
         vehicle_plate_number=request.vehicle_plate_number,
         is_verified=False,  # Needs manual verification
+        is_active=True,
     )
-    db.add(driver_profile)
+    db.add(driver)
     db.commit()
-    db.refresh(user)
+    db.refresh(driver)
     
-    return UserSchema.from_orm(user)
+    return {
+        "id": str(driver.id),
+        "name": driver.name,
+        "phone": driver.phone,
+        "email": driver.email,
+        "message": "Driver created successfully"
+    }
 
 
 @router.get("/users", response_model=List[UserSchema])
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    role: Optional[UserRole] = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
     """List all users with pagination (admin only)"""
     query = db.query(User)
-    
-    if role:
-        query = query.filter(User.role == role)
-    
     users = query.offset(skip).limit(limit).all()
     return [UserSchema.from_orm(user) for user in users]
 
@@ -147,12 +135,14 @@ async def list_drivers(
     
     drivers = query.offset(skip).limit(limit).all()
     
-    # Return driver data with user info
+    # Return driver data
     result = []
     for driver in drivers:
         driver_data = {
             "id": str(driver.id),
-            "user": UserSchema.from_orm(driver.user) if driver.user else None,
+            "name": driver.name,
+            "phone": driver.phone,
+            "email": driver.email,
             "license_number": driver.license_number,
             "vehicle_type": driver.vehicle_type,
             "vehicle_make": driver.vehicle_make,
@@ -162,7 +152,7 @@ async def list_drivers(
             "is_verified": driver.is_verified,
             "is_active": driver.is_active,
             "rating": driver.rating,
-            "total_trips": driver.total_trips,
+            "total_rides": driver.total_rides,
         }
         result.append(driver_data)
     
@@ -203,80 +193,65 @@ async def update_driver(
     return {"message": "Driver updated successfully"}
 
 
-@router.get("/trips")
-async def list_trips(
+@router.get("/rides")
+async def list_rides(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    """List all trips with pagination (admin only)"""
-    trips = db.query(Trip).offset(skip).limit(limit).all()
+    """List all grouped rides with pagination (admin only)"""
+    rides = db.query(GroupedRide).offset(skip).limit(limit).all()
     
     result = []
-    for trip in trips:
-        trip_data = {
-            "id": str(trip.id),
-            "driver": UserSchema.from_orm(trip.driver) if trip.driver else None,
-            "origin_address": trip.origin_address,
-            "dest_address": trip.dest_address,
-            "departure_time": trip.departure_time.isoformat(),
-            "total_seats": trip.total_seats,
-            "available_seats": trip.available_seats,
-            "fare_per_person": trip.fare_per_person,
-            "vehicle_type": trip.vehicle_type.value if trip.vehicle_type else None,
-            "status": trip.status.value if trip.status else None,
-            "created_at": trip.created_at.isoformat(),
+    for ride in rides:
+        ride_data = {
+            "id": str(ride.id),
+            "driver_id": str(ride.driver_id) if ride.driver_id else None,
+            "driver_name": ride.driver.name if ride.driver else None,
+            "pickup_location": ride.pickup_location,
+            "destination": ride.destination,
+            "scheduled_time": ride.scheduled_time.isoformat() if ride.scheduled_time else None,
+            "total_seats": ride.total_seats,
+            "available_seats": ride.available_seats,
+            "fare_per_seat": float(ride.fare_per_seat) if ride.fare_per_seat else None,
+            "status": ride.status,
+            "created_at": ride.created_at.isoformat(),
         }
-        result.append(trip_data)
+        result.append(ride_data)
     
     return result
 
 
-@router.get("/trips/{trip_id}")
-async def get_trip(
-    trip_id: str,
+@router.get("/rides/{ride_id}")
+async def get_ride(
+    ride_id: str,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    """Get trip details with members (admin only)"""
-    trip = db.query(Trip).filter(Trip.id == trip_id).first()
-    if not trip:
+    """Get ride details (admin only)"""
+    ride = db.query(GroupedRide).filter(GroupedRide.id == ride_id).first()
+    if not ride:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Trip not found"
+            detail="Ride not found"
         )
     
-    trip_data = {
-        "id": str(trip.id),
-        "driver": UserSchema.from_orm(trip.driver) if trip.driver else None,
-        "origin_lat": trip.origin_lat,
-        "origin_lng": trip.origin_lng,
-        "origin_address": trip.origin_address,
-        "dest_lat": trip.dest_lat,
-        "dest_lng": trip.dest_lng,
-        "dest_address": trip.dest_address,
-        "departure_time": trip.departure_time.isoformat(),
-        "total_seats": trip.total_seats,
-        "available_seats": trip.available_seats,
-        "fare_per_person": trip.fare_per_person,
-        "vehicle_type": trip.vehicle_type.value if trip.vehicle_type else None,
-        "status": trip.status.value if trip.status else None,
-        "description": trip.description,
-        "members": [
-            {
-                "id": str(member.id),
-                "user": UserSchema.from_orm(member.user) if member.user else None,
-                "seats_requested": member.seats_requested,
-                "status": member.status.value if member.status else None,
-                "message": member.message,
-            }
-            for member in trip.members
-        ],
-        "created_at": trip.created_at.isoformat(),
+    ride_data = {
+        "id": str(ride.id),
+        "driver_id": str(ride.driver_id) if ride.driver_id else None,
+        "driver_name": ride.driver.name if ride.driver else None,
+        "pickup_location": ride.pickup_location,
+        "destination": ride.destination,
+        "scheduled_time": ride.scheduled_time.isoformat() if ride.scheduled_time else None,
+        "total_seats": ride.total_seats,
+        "available_seats": ride.available_seats,
+        "fare_per_seat": float(ride.fare_per_seat) if ride.fare_per_seat else None,
+        "status": ride.status,
+        "created_at": ride.created_at.isoformat(),
     }
     
-    return trip_data
+    return ride_data
 
 
 # Admin user management endpoints

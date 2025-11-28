@@ -29,14 +29,8 @@ class GroupedRide(GroupedRideBase):
         from_attributes = True
 
 
-class GroupedRideDetail(GroupedRide):
-    from .ride_request import RideRequest
-    from .user import User
-    from .driver import Driver as DriverSchema
-    
-    ride_requests: List[RideRequest] = []
-    admin: User
-    driver: Optional[DriverSchema]
+# Removed GroupedRideDetail to avoid circular import issues
+# Can be re-added later with proper handling if needed
 
 
 class RideAssignment(BaseModel):

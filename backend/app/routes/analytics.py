@@ -7,7 +7,7 @@ from typing import Optional
 from ..core.database import get_db
 from ..core.auth import get_current_admin
 from ..models.admin import Admin
-from ..models.trip import Trip, TripStatus
+from ..models.grouped_ride import GroupedRide
 from ..models.user import User
 from ..models.driver import Driver
 
@@ -27,16 +27,16 @@ async def get_overview(
     end = datetime.fromisoformat(end_date) if end_date else datetime.now()
     
     # Total trips
-    total_trips = db.query(Trip).filter(
-        Trip.created_at >= start,
-        Trip.created_at <= end
+    total_trips = db.query(GroupedRide).filter(
+        GroupedRide.created_at >= start,
+        GroupedRide.created_at <= end
     ).count()
     
     # Total revenue
-    total_revenue = db.query(func.sum(Trip.fare_per_person * (Trip.total_seats - Trip.available_seats))).filter(
-        Trip.created_at >= start,
-        Trip.created_at <= end,
-        Trip.status == TripStatus.COMPLETED
+    total_revenue = db.query(func.sum(GroupedRide.fare_per_person * (GroupedRide.total_seats - GroupedRide.available_seats))).filter(
+        GroupedRide.created_at >= start,
+        GroupedRide.created_at <= end,
+        GroupedRide.status == str.COMPLETED
     ).scalar() or 0
     
     # Total users
@@ -52,8 +52,8 @@ async def get_overview(
     ).count()
     
     # Active trips
-    active_trips = db.query(Trip).filter(
-        Trip.status == TripStatus.ACTIVE
+    active_trips = db.query(GroupedRide).filter(
+        GroupedRide.status == str.ACTIVE
     ).count()
     
     return {
@@ -78,9 +78,9 @@ async def get_trips_timeline(
     end = datetime.fromisoformat(end_date) if end_date else datetime.now()
     
     # Get all trips in date range
-    trips = db.query(Trip).filter(
-        Trip.created_at >= start,
-        Trip.created_at <= end
+    trips = db.query(GroupedRide).filter(
+        GroupedRide.created_at >= start,
+        GroupedRide.created_at <= end
     ).all()
     
     # Group by date and status
@@ -115,10 +115,10 @@ async def get_revenue_stats(
     end = datetime.fromisoformat(end_date) if end_date else datetime.now()
     
     # Get completed trips
-    trips = db.query(Trip).filter(
-        Trip.created_at >= start,
-        Trip.created_at <= end,
-        Trip.status == TripStatus.COMPLETED
+    trips = db.query(GroupedRide).filter(
+        GroupedRide.created_at >= start,
+        GroupedRide.created_at <= end,
+        GroupedRide.status == str.COMPLETED
     ).all()
     
     # Group by date and vehicle type
@@ -181,12 +181,12 @@ async def get_status_distribution(
     
     # Count by status
     status_counts = db.query(
-        Trip.status,
-        func.count(Trip.id)
+        GroupedRide.status,
+        func.count(GroupedRide.id)
     ).filter(
-        Trip.created_at >= start,
-        Trip.created_at <= end
-    ).group_by(Trip.status).all()
+        GroupedRide.created_at >= start,
+        GroupedRide.created_at <= end
+    ).group_by(GroupedRide.status).all()
     
     result = []
     for status, count in status_counts:

@@ -20,9 +20,7 @@ class Notification(NotificationBase):
         from_attributes = True
 
 
-class NotificationWithDetails(Notification):
-    from .grouped_ride import GroupedRide
-    grouped_ride: GroupedRide
+# Removed NotificationWithDetails to avoid circular import issues
 
 
 class NotificationResponse(BaseModel):

@@ -6,8 +6,8 @@ from typing import Optional, Tuple
 from ..core.database import get_db
 from ..core.auth import get_current_user_with_role
 from ..models.user import User
-from ..models.trip import Trip, TripMember, MemberStatus
-from ..models.rating import Rating, RatingParticipantType
+from ..models.grouped_ride import GroupedRide
+from ..models.rating import Rating
 from ..schemas.rating import RatingCreate, RatingTargetType
 
 router = APIRouter(prefix="/api/trips", tags=["Ratings"])
@@ -21,22 +21,22 @@ async def rate_trip_participants(
     db: Session = Depends(get_db)
 ):
     """Rate trip participants after trip completion"""
-    trip = db.query(Trip).filter(Trip.id == trip_id).first()
+    trip = db.query(GroupedRide).filter(GroupedRide.id == trip_id).first()
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Trip not found"
+            detail="GroupedRide not found"
         )
     
     actor, role_claim = current_identity
 
     # Check if rater was part of this trip
     is_driver = trip.driver_id == actor.id
-    is_rider_member = db.query(TripMember).filter(
+    is_rider_member = db.query(RideRequest).filter(
         and_(
-            TripMember.trip_id == trip.id,
-            TripMember.user_id == actor.id,
-            TripMember.status == MemberStatus.APPROVED
+            RideRequest.trip_id == trip.id,
+            RideRequest.user_id == actor.id,
+            RideRequest.status == "accepted"
         )
     ).first() is not None
 
@@ -59,11 +59,11 @@ async def rate_trip_participants(
                 continue
 
             # Verify target user was part of trip
-            is_target_member = db.query(TripMember).filter(
+            is_target_member = db.query(RideRequest).filter(
                 and_(
-                    TripMember.trip_id == trip.id,
-                    TripMember.user_id == target_user.id,
-                    TripMember.status == MemberStatus.APPROVED
+                    RideRequest.trip_id == trip.id,
+                    RideRequest.user_id == target_user.id,
+                    RideRequest.status == "accepted"
                 )
             ).first() is not None
             if not is_target_member:

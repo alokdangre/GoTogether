@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from .user import User, UserRole
+from .user import User
 
 
 class OTPRequest(BaseModel):
@@ -21,7 +21,6 @@ class SignUpRequest(BaseModel):
     email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8, max_length=128)
     name: str = Field(..., max_length=100)
-    role: Optional[UserRole] = Field(None, description="Role to register as")
 
 
 class LoginRequest(BaseModel):

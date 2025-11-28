@@ -14,7 +14,6 @@ from ..schemas.ride_request import RideRequestWithUser
 from ..schemas.grouped_ride import (
     GroupedRideCreate,
     GroupedRide as GroupedRideSchema,
-    GroupedRideDetail,
     RideAssignment,
     PricingUpdate,
     GroupedRideUpdate
@@ -36,7 +35,7 @@ async def get_pending_requests(
     return [RideRequestWithUser.from_orm(req) for req in requests]
 
 
-@router.post("/grouped-rides", response_model=GroupedRideDetail, status_code=status.HTTP_201_CREATED)
+@router.post("/grouped-rides", response_model=GroupedRideSchema, status_code=status.HTTP_201_CREATED)
 async def create_grouped_ride(
     ride_data: GroupedRideCreate,
     current_admin: Admin = Depends(get_current_admin),
@@ -73,10 +72,10 @@ async def create_grouped_ride(
     db.commit()
     db.refresh(grouped_ride)
     
-    return GroupedRideDetail.from_orm(grouped_ride)
+    return GroupedRideSchema.from_orm(grouped_ride)
 
 
-@router.put("/grouped-rides/{ride_id}/assign-driver", response_model=GroupedRideDetail)
+@router.put("/grouped-rides/{ride_id}/assign-driver", response_model=GroupedRideSchema)
 async def assign_driver(
     ride_id: str,
     assignment: RideAssignment,
@@ -125,10 +124,10 @@ async def assign_driver(
     db.commit()
     db.refresh(grouped_ride)
     
-    return GroupedRideDetail.from_orm(grouped_ride)
+    return GroupedRideSchema.from_orm(grouped_ride)
 
 
-@router.put("/grouped-rides/{ride_id}/pricing", response_model=GroupedRideDetail)
+@router.put("/grouped-rides/{ride_id}/pricing", response_model=GroupedRideSchema)
 async def update_pricing(
     ride_id: str,
     pricing: PricingUpdate,
@@ -150,20 +149,20 @@ async def update_pricing(
     db.commit()
     db.refresh(grouped_ride)
     
-    return GroupedRideDetail.from_orm(grouped_ride)
+    return GroupedRideSchema.from_orm(grouped_ride)
 
 
-@router.get("/grouped-rides", response_model=List[GroupedRideDetail])
+@router.get("/grouped-rides", response_model=List[GroupedRideSchema])
 async def get_grouped_rides(
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
     """Get all grouped rides"""
     rides = db.query(GroupedRide).order_by(GroupedRide.created_at.desc()).all()
-    return [GroupedRideDetail.from_orm(ride) for ride in rides]
+    return [GroupedRideSchema.from_orm(ride) for ride in rides]
 
 
-@router.put("/grouped-rides/{ride_id}", response_model=GroupedRideDetail)
+@router.put("/grouped-rides/{ride_id}", response_model=GroupedRideSchema)
 async def update_grouped_ride(
     ride_id: str,
     update_data: GroupedRideUpdate,
@@ -187,4 +186,4 @@ async def update_grouped_ride(
     db.commit()
     db.refresh(grouped_ride)
     
-    return GroupedRideDetail.from_orm(grouped_ride)
+    return GroupedRideSchema.from_orm(grouped_ride)

@@ -11,14 +11,13 @@ from ..models.ride_request import RideRequest
 from ..models.grouped_ride import GroupedRide
 from ..schemas.notification import (
     Notification,
-    NotificationWithDetails,
     NotificationResponse
 )
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
-@router.get("", response_model=List[NotificationWithDetails])
+@router.get("", response_model=List[Notification])
 async def get_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -28,7 +27,7 @@ async def get_notifications(
         RideNotification.user_id == current_user.id
     ).order_by(RideNotification.sent_at.desc()).all()
     
-    return [NotificationWithDetails.from_orm(notif) for notif in notifications]
+    return [Notification.from_orm(notif) for notif in notifications]
 
 
 @router.put("/{notification_id}/accept", response_model=Notification)

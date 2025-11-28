@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .database import get_db
 from .email import EmailDeliveryError, send_email
-from ..models.user import User, UserRole
+from ..models.user import User
 
 # Password hashing (PBKDF2-SHA256 avoids bcrypt backend issues/length limits)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -181,22 +181,10 @@ async def get_current_user_with_role(
 async def require_driver_user(
     user_with_role: Tuple[User, Optional[str]] = Depends(get_current_user_with_role)
 ) -> User:
+    """Require an authenticated user. 
+    Note: Driver-specific validation removed as the current model doesn't have roles.
+    This can be re-implemented when driver profiles are added."""
     user, role_claim = user_with_role
-    # Determine effective role: use claim if present, otherwise user record
-    effective_role = role_claim or (user.role.value if isinstance(user.role, UserRole) else user.role)
-
-    if effective_role == UserRole.RIDER.value and user.role == UserRole.RIDER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Driver privileges required"
-        )
-
-    if user.role not in (UserRole.DRIVER, UserRole.BOTH) or user.driver_profile is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Driver profile is required"
-        )
-
     return user
 
 

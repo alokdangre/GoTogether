@@ -3,6 +3,8 @@ from typing import Optional
 from datetime import datetime
 import uuid
 
+from .user import User
+
 
 class RideRequestBase(BaseModel):
     source_lat: float = Field(..., ge=-90, le=90)
@@ -47,7 +49,6 @@ class RideRequest(RideRequestBase):
 
 
 class RideRequestWithUser(RideRequest):
-    from .user import User
     user: User
 
 
