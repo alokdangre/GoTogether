@@ -8,6 +8,7 @@ Create Date: 2025-11-27 09:49:17.309302
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from passlib.hash import pbkdf2_sha256
 
 # revision identifiers, used by Alembic.
 revision = 'aee12e345291'
@@ -105,6 +106,21 @@ def upgrade() -> None:
     op.create_index('ix_ride_requests_status', 'ride_requests', ['status'])
     op.create_index('ix_ride_requests_user_id', 'ride_requests', ['user_id'])
     
+    # Create admins table if it doesn't exist (it seems it was missing in previous migrations)
+    op.create_table(
+        'admins',
+        sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
+        sa.Column('email', sa.String(255), nullable=False),
+        sa.Column('hashed_password', sa.String(255), nullable=False),
+        sa.Column('full_name', sa.String(100), nullable=True),
+        sa.Column('role', sa.String(20), server_default='admin', nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('email')
+    )
+    op.create_index('ix_admins_email', 'admins', ['email'], unique=True)
+
     # Create grouped_rides table
     op.create_table(
         'grouped_rides',
@@ -169,6 +185,19 @@ def upgrade() -> None:
     # Update admins table
     op.add_column('admins', sa.Column('is_super_admin', sa.Boolean(), server_default='false', nullable=False))
     op.add_column('admins', sa.Column('last_login', sa.DateTime(timezone=True), nullable=True))
+
+    # Seed default admin
+    # We use a raw SQL execution to avoid dependency on app models
+    # Hash for 'admin123'
+    hashed_pwd = pbkdf2_sha256.hash("admin123")
+    
+    op.execute(
+        sa.text(
+            "INSERT INTO admins (id, email, hashed_password, full_name, role, is_super_admin, created_at) "
+            "VALUES (gen_random_uuid(), 'admin@gotogether.com', :pwd, 'System Admin', 'SUPER_ADMIN', true, now()) "
+            "ON CONFLICT (email) DO NOTHING"
+        ).bindparams(pwd=hashed_pwd)
+    )
 
 
 def downgrade() -> None:
