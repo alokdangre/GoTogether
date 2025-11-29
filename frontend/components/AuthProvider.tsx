@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import PhoneCollectionModal from './PhoneCollectionModal';
 
@@ -30,13 +31,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         initAuth();
     }, []); // Run only once on mount
 
+    const pathname = usePathname();
+
     useEffect(() => {
-        if (isInitialized && user && !user.phone) {
+        const isAdminPage = pathname?.startsWith('/admin');
+        if (isInitialized && user && !user.phone && !isAdminPage) {
             setShowPhoneModal(true);
         } else {
             setShowPhoneModal(false);
         }
-    }, [isInitialized, user]);
+    }, [isInitialized, user, pathname]);
 
     // Don't render children until auth is initialized
     if (!isInitialized) {
