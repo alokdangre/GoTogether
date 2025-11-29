@@ -61,6 +61,26 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      loginWithPassword: async (email: string, password: string): Promise<void> => {
+        set({ isLoading: true });
+        try {
+          const response = await authApi.login({ email, password });
+
+          // Store token in localStorage
+          localStorage.setItem('auth_token', response.access_token);
+
+          set({
+            user: response.user,
+            token: response.access_token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({ isLoading: false });
+          throw new Error(handleApiError(error));
+        }
+      },
+
       signup: async (email: string, password: string, name: string, phone?: string): Promise<void> => {
         set({ isLoading: true });
         try {

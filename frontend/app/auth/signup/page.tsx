@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CarIcon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { CarIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useAuthStore } from '@/lib/store';
@@ -9,8 +10,17 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { isLoading } = useAuthStore();
+  const { signup, isLoading } = useAuthStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: {
+      name: '',
+      email: '',
+      password: ''
+    }
+  });
 
   useEffect(() => {
     // Warm up backend on mount
@@ -25,7 +35,7 @@ export default function SignUpPage() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     try {
-      // Ping backend to ensure it's awake
+      // Ping backend
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -43,6 +53,16 @@ export default function SignUpPage() {
     } catch (error) {
       console.error('Google sign up error', error);
       setIsGoogleLoading(false);
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    try {
+      await signup(data.email, data.password, data.name);
+      toast.success('Account created successfully!');
+      router.push('/');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account');
     }
   };
 
@@ -65,21 +85,85 @@ export default function SignUpPage() {
 
           {/* Form */}
           <div className="px-8 py-8">
-            <div className="mb-8">
+            <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h2>
-              <p className="text-gray-600">Sign up with your Google account to get started</p>
+              <p className="text-gray-600">Enter your details to get started</p>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  {...register('name', { required: 'Name is required' })}
+                  type="text"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="John Doe"
+                />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input
+                  {...register('email', { required: 'Email is required' })}
+                  type="email"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="you@example.com"
+                />
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message as string}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: { value: 8, message: 'Password must be at least 8 characters' }
+                    })}
+                    type={showPassword ? 'text' : 'password'}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message as string}</p>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-lg shadow-blue-200 transition-all disabled:opacity-70 disabled:cursor-wait"
+              >
+                {isLoading ? <LoadingSpinner size="sm" /> : 'Create Account'}
+              </button>
+            </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleGoogleSignUp}
               disabled={isGoogleLoading}
-              className="w-full inline-flex items-center justify-center px-6 py-4 border border-gray-200 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-wait"
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-gray-200 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-wait"
             >
               {isGoogleLoading ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-3" />
-                  Connecting to server...
+                  Connecting...
                 </>
               ) : (
                 <>
@@ -101,7 +185,7 @@ export default function SignUpPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Sign up with Google
+                  Google
                 </>
               )}
             </button>

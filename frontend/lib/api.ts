@@ -91,6 +91,11 @@ export const authApi = {
     return response.data;
   },
 
+  login: async (data: { email?: string; phone?: string; password: string }): Promise<AuthToken> => {
+    const response = await api.post('/api/auth/login', data);
+    return response.data;
+  },
+
   updateProfile: async (data: { phone?: string; name?: string; avatar_url?: string; whatsapp_number?: string }): Promise<User> => {
     const response = await api.put('/api/auth/me', data);
     return response.data;
