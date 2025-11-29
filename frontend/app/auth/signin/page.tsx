@@ -61,7 +61,7 @@ function SignInContent() {
         });
         clearTimeout(timeoutId);
       } catch (e) {
-        console.log('Backend ping failed or timed out, proceeding anyway');
+        // Backend ping failed or timed out, proceeding anyway
       }
 
       window.location.href = `${apiUrl}/api/auth/google/login`;

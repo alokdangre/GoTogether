@@ -96,8 +96,6 @@ export default function RequestRidePage() {
                 additional_info: data.additional_info?.trim() || null
             };
 
-            console.log('Sending ride request:', requestBody);
-
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ride-requests`, {
                 method: 'POST',
                 headers: {
@@ -114,7 +112,6 @@ export default function RequestRidePage() {
             }
 
             const result = await response.json();
-            console.log('Ride request created:', result);
             toast.success('Ride request submitted successfully!');
             router.push('/my-rides');
         } catch (error) {

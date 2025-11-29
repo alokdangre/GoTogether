@@ -83,40 +83,26 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-            console.log('WS Connected');
             setIsConnected(true);
         };
 
         ws.onmessage = (event) => {
-            console.log('WS Message received:', event.data);
             try {
                 const message = JSON.parse(event.data);
                 setMessages((prev) => [...prev, message]);
 
                 // Show notification if message is from someone else
                 if (message.notification) {
-                    console.log('=== NOTIFICATION DEBUG ===');
-                    console.log('Message has notification data:', message.notification);
 
                     const isMyMessage =
                         (message.sender_type === 'user' && message.user_id === myId) ||
                         (message.sender_type === 'admin' && message.admin_id === myId);
 
-                    console.log('Is my message?', isMyMessage);
-                    console.log('My ID:', myId);
-                    console.log('Sender ID:', message.user_id || message.admin_id);
-                    console.log('Sender type:', message.sender_type);
-                    console.log('Can show notifications?', notificationService.canShowNotifications());
-                    console.log('Notification permission:', Notification.permission);
-
                     if (!isMyMessage) {
-                        console.log('>>> Attempting to show notification...');
 
                         // Request permission if not granted
                         if (Notification.permission === 'default') {
-                            console.log('Requesting notification permission...');
                             Notification.requestPermission().then(permission => {
-                                console.log('Permission result:', permission);
                                 if (permission === 'granted') {
                                     showTheNotification();
                                 }
@@ -143,21 +129,16 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                                 });
 
                                 notification.onclick = function () {
-                                    console.log('Notification clicked!');
                                     window.focus();
                                     window.location.href = `/chat/${groupedRideId}`;
                                     notification.close();
                                 };
 
-                                console.log('✅ Notification shown!', notification);
                             } catch (e) {
-                                console.error('❌ Error creating notification:', e);
+                                console.error('Error creating notification:', e);
                             }
                         }
-                    } else {
-                        console.log('>>> Skipped: This is my own message');
                     }
-                    console.log('=== END NOTIFICATION DEBUG ===');
                 }
             } catch (e) {
                 console.error('Failed to parse message:', e);
@@ -165,8 +146,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         };
 
         ws.onclose = (e) => {
-            console.log('WS Disconnected', e.code, e.reason);
-            setIsConnected(false);
+            // Reconnect logic could go here
         };
 
         ws.onerror = (error) => {
@@ -178,23 +158,18 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         return () => {
             ws.close();
         };
-    }, [groupedRideId, token]);
+    }, [groupedRideId, token, myId]);
 
-    const sendMessage = () => {
-        if (wsRef.current && newMessage.trim()) {
-            console.log('Sending message:', newMessage);
+    const sendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && newMessage.trim()) {
             wsRef.current.send(JSON.stringify({ content: newMessage }));
             setNewMessage('');
-        } else {
-            console.log('Cannot send message: WS not connected or empty message');
         }
     };
 
     // Test notification function
     const testNotification = () => {
-        console.log('=== TESTING NOTIFICATION ===');
-        console.log('Permission:', Notification.permission);
-        console.log('Browser supports notifications:', 'Notification' in window);
 
         if (!('Notification' in window)) {
             alert('Your browser does not support notifications');
@@ -202,7 +177,6 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         }
 
         if (Notification.permission === 'granted') {
-            console.log('✅ Permission granted, showing test notification...');
             const notification = new Notification('Test Notification - GoTogether', {
                 body: 'Notifications are working! Click to open chat.',
                 icon: '/icon-192x192.png',
@@ -215,17 +189,13 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             });
 
             notification.onclick = function () {
-                console.log('Test notification clicked!');
                 window.focus();
                 window.location.href = `/chat/${groupedRideId}`;
                 notification.close();
             };
 
-            console.log('✅ Test notification shown!');
         } else if (Notification.permission === 'default') {
-            console.log('⚠️ Permission not yet granted, requesting...');
             Notification.requestPermission().then(permission => {
-                console.log('Permission result:', permission);
                 if (permission === 'granted') {
                     // Recursively call to show notification
                     setTimeout(testNotification, 100);
@@ -237,8 +207,6 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             console.error('❌ Notifications are blocked');
             alert('Notifications are blocked. Please enable them in your browser settings.\n\n1. Click the lock/info icon in the address bar\n2. Find "Notifications"\n3. Change to "Allow"\n4. Refresh the page');
         }
-
-        console.log('=== END TEST ===');
     };
 
     // Scroll to bottom
@@ -309,7 +277,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage(e)}
                     placeholder={isConnected ? "Type a message" : "Connecting to chat..."}
                     className="flex-1 rounded-lg border-none px-4 py-2 focus:ring-0 bg-white shadow-sm"
                     disabled={!isConnected}
