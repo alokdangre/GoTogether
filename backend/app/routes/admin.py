@@ -121,6 +121,73 @@ async def get_user(
     return UserSchema.from_orm(user)
 
 
+@router.post("/users/{user_id}/notify-phone")
+async def notify_user_phone(
+    user_id: str,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Send a notification email to user to add phone number"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    if not user.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User has no email address"
+        )
+        
+    if user.phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already has a phone number"
+        )
+        
+    # Send email
+    from ..core.email import send_email
+    
+    subject = "Action Required: Add your phone number to GoTogether"
+    text_body = f"""Hi {user.name},
+    
+We noticed you haven't added your phone number to your GoTogether account yet.
+A phone number is required to coordinate rides with drivers and other passengers.
+
+Please log in to your account and add your phone number.
+
+Best regards,
+The GoTogether Team
+"""
+    
+    html_body = f"""
+    <html>
+        <body>
+            <h2>Hi {user.name},</h2>
+            <p>We noticed you haven't added your phone number to your GoTogether account yet.</p>
+            <p>A phone number is required to coordinate rides with drivers and other passengers.</p>
+            <p>Please log in to your account and add your phone number.</p>
+            <br>
+            <p>Best regards,<br>The GoTogether Team</p>
+        </body>
+    </html>
+    """
+    
+    try:
+        await send_email(user.email, subject, text_body, html_body)
+    except Exception as e:
+        # Log error
+        print(f"Failed to send email: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send email notification"
+        )
+        
+    return {"message": f"Notification sent to {user.email}"}
+
+
 @router.get("/drivers")
 async def list_drivers(
     skip: int = Query(0, ge=0),

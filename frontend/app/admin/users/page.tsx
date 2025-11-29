@@ -138,8 +138,19 @@ export default function AdminUsersPage() {
                                                     <div className="flex items-center space-x-2">
                                                         <span className="text-sm text-red-500 font-medium">Missing</span>
                                                         <button
-                                                            onClick={() => {
-                                                                toast.success(`Notification sent to ${user.name}`);
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const token = localStorage.getItem('admin_token');
+                                                                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                                    await axios.post(
+                                                                        `${apiUrl}/api/admin/users/${user.id}/notify-phone`,
+                                                                        {},
+                                                                        { headers: { Authorization: `Bearer ${token}` } }
+                                                                    );
+                                                                    toast.success(`Notification sent to ${user.name}`);
+                                                                } catch (error: any) {
+                                                                    toast.error(error.response?.data?.detail || 'Failed to send notification');
+                                                                }
                                                             }}
                                                             className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                                                         >
