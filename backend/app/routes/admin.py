@@ -126,6 +126,8 @@ async def list_drivers(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=1000),
     is_verified: Optional[bool] = None,
+    availability_status: Optional[str] = None,
+    sort_by: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
@@ -134,6 +136,15 @@ async def list_drivers(
     
     if is_verified is not None:
         query = query.filter(Driver.is_verified == is_verified)
+        
+    if availability_status:
+        query = query.filter(Driver.availability_status == availability_status)
+        
+    if sort_by == "queue":
+        # Sort by assigned_rides_count ASC (fairness) and then updated_at
+        query = query.order_by(Driver.assigned_rides_count.asc(), Driver.updated_at.asc())
+    else:
+        query = query.order_by(Driver.created_at.desc())
     
     drivers = query.offset(skip).limit(limit).all()
     
@@ -153,8 +164,10 @@ async def list_drivers(
             "vehicle_plate_number": driver.vehicle_plate_number,
             "is_verified": driver.is_verified,
             "is_active": driver.is_active,
+            "availability_status": driver.availability_status,
             "rating": driver.rating,
             "total_rides": driver.total_rides,
+            "assigned_rides_count": driver.assigned_rides_count,
         }
         result.append(driver_data)
     
@@ -166,6 +179,7 @@ async def update_driver(
     driver_id: str,
     is_verified: Optional[bool] = None,
     is_active: Optional[bool] = None,
+    availability_status: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
@@ -188,6 +202,9 @@ async def update_driver(
         if not is_active:
             from datetime import datetime
             driver.deactivated_at = datetime.utcnow()
+            
+    if availability_status:
+        driver.availability_status = availability_status
     
     db.commit()
     db.refresh(driver)
@@ -308,11 +325,24 @@ async def create_grouped_ride(
 async def list_rides(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=1000),
+    status: Optional[str] = None,
+    date: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
     """List all grouped rides with pagination (admin only)"""
-    rides = db.query(GroupedRide).offset(skip).limit(limit).all()
+    query = db.query(GroupedRide)
+    
+    if status:
+        query = query.filter(GroupedRide.status == status)
+        
+    if date:
+        from sqlalchemy import func
+        query = query.filter(func.date(GroupedRide.pickup_time) == date)
+        
+    query = query.order_by(GroupedRide.created_at.desc())
+    
+    rides = query.offset(skip).limit(limit).all()
     
     result = []
     for ride in rides:

@@ -20,6 +20,7 @@ interface Driver {
     is_active: boolean;
     total_rides: number;
     rating: number;
+    availability_status?: string;
 }
 
 export default function AdminDriversPage() {
@@ -37,10 +38,11 @@ export default function AdminDriversPage() {
         vehicle_model: '',
         vehicle_plate_number: '',
     });
+    const [sortBy, setSortBy] = useState('default');
 
     useEffect(() => {
         fetchDrivers();
-    }, []);
+    }, [sortBy]);
 
     const fetchDrivers = async () => {
         const token = localStorage.getItem('admin_token');
@@ -51,7 +53,7 @@ export default function AdminDriversPage() {
 
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await axios.get(`${apiUrl}/api/admin/drivers?limit=1000`, {
+            const response = await axios.get(`${apiUrl}/api/admin/drivers?limit=1000&sort_by=${sortBy}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setDrivers(response.data);
@@ -123,6 +125,22 @@ export default function AdminDriversPage() {
         }
     };
 
+    const handleStatusChange = async (driverId: string, status: string) => {
+        const token = localStorage.getItem('admin_token');
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            await axios.patch(
+                `${apiUrl}/api/admin/drivers/${driverId}`,
+                { availability_status: status },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Status updated');
+            fetchDrivers();
+        } catch (error) {
+            toast.error('Failed to update status');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -138,13 +156,23 @@ export default function AdminDriversPage() {
                             </button>
                             <h1 className="text-3xl font-bold text-gray-900">Drivers Management</h1>
                         </div>
-                        <button
-                            onClick={() => setShowAddForm(true)}
-                            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                            <Plus className="h-5 w-5 mr-2" />
-                            Add Driver
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="default">Default Sort</option>
+                                <option value="queue">Queue (Fairness)</option>
+                            </select>
+                            <button
+                                onClick={() => setShowAddForm(true)}
+                                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                                <Plus className="h-5 w-5 mr-2" />
+                                Add Driver
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -244,17 +272,18 @@ export default function AdminDriversPage() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stats</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Availability</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading...</td>
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">Loading...</td>
                                     </tr>
                                 ) : drivers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No drivers found</td>
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">No drivers found</td>
                                     </tr>
                                 ) : (
                                     drivers.map((driver) => (
@@ -279,6 +308,20 @@ export default function AdminDriversPage() {
                                                     }`}>
                                                     {driver.is_verified ? 'Verified' : 'Pending'}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <select
+                                                    value={driver.availability_status || 'available'}
+                                                    onChange={(e) => handleStatusChange(driver.id, e.target.value)}
+                                                    className={`text-xs font-medium rounded-full px-2 py-1 border-none focus:ring-0 cursor-pointer ${driver.availability_status === 'available' ? 'bg-green-100 text-green-800' :
+                                                        driver.availability_status === 'busy' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-800'
+                                                        }`}
+                                                >
+                                                    <option value="available">Available</option>
+                                                    <option value="busy">Busy</option>
+                                                    <option value="offline">Offline</option>
+                                                </select>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button

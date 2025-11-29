@@ -24,6 +24,8 @@ export default function AdminTripsPage() {
     const [trips, setTrips] = useState<Trip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
@@ -35,7 +37,11 @@ export default function AdminTripsPage() {
         const fetchTrips = async () => {
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const response = await axios.get(`${apiUrl}/api/admin/trips?limit=1000`, {
+                let url = `${apiUrl}/api/admin/trips?limit=1000`;
+                if (statusFilter) url += `&status=${statusFilter}`;
+                if (dateFilter) url += `&date=${dateFilter}`;
+
+                const response = await axios.get(url, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setTrips(response.data);
@@ -52,7 +58,7 @@ export default function AdminTripsPage() {
         };
 
         fetchTrips();
-    }, [router]);
+    }, [router, statusFilter, dateFilter]);
 
     const filteredTrips = trips.filter(
         (trip) =>
@@ -84,15 +90,39 @@ export default function AdminTripsPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Search */}
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by origin, destination, or driver..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                        <div>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="pending_acceptance">Pending Acceptance</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div>
+                            <input
+                                type="date"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
                     </div>
                 </div>
 
