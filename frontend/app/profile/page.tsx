@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Car } from 'lucide-react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 import { useAuthStore } from '@/lib/store';
 import { User } from '@/types';
@@ -29,6 +30,11 @@ export default function ProfilePage() {
     email: '',
     phone: '',
   });
+
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showFeatureModal, setShowFeatureModal] = useState(false);
+  const [supportText, setSupportText] = useState('');
+  const [supportTitle, setSupportTitle] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -55,6 +61,51 @@ export default function ProfilePage() {
     logout();
     router.push('/');
     toast.success('Logged out successfully');
+  };
+
+  const handleSupportSubmit = async (type: 'issue' | 'feature') => {
+    if (!supportTitle || !supportText) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      await axios.post(`${apiUrl}/api/support/`, {
+        type,
+        title: supportTitle,
+        description: supportText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('Request submitted successfully');
+      setShowIssueModal(false);
+      setShowFeatureModal(false);
+      setSupportTitle('');
+      setSupportText('');
+    } catch (error) {
+      toast.error('Failed to submit request');
+    }
+  };
+
+  const handleCallRequest = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      await axios.post(`${apiUrl}/api/support/`, {
+        type: 'call',
+        title: 'Call Request',
+        description: 'User requested a call back'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('It will be done soon');
+    } catch (error) {
+      toast.error('Failed to request call');
+    }
   };
 
   if (!isAuthenticated || !user) {
@@ -313,8 +364,114 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Support Actions */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Support & Feedback</h3>
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setSupportTitle('');
+                    setSupportText('');
+                    setShowIssueModal(true);
+                  }}
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Report an Issue
+                </button>
+                <button
+                  onClick={() => {
+                    setSupportTitle('');
+                    setSupportText('');
+                    setShowFeatureModal(true);
+                  }}
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Request Feature
+                </button>
+                <button
+                  onClick={handleCallRequest}
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                >
+                  <PhoneIcon className="h-5 w-5 mr-2" />
+                  Request Call Back
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Issue Modal */}
+        {showIssueModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4">Report an Issue</h3>
+              <input
+                type="text"
+                placeholder="Issue Title"
+                value={supportTitle}
+                onChange={(e) => setSupportTitle(e.target.value)}
+                className="w-full mb-4 px-4 py-2 border rounded-lg"
+              />
+              <textarea
+                placeholder="Describe the issue..."
+                value={supportText}
+                onChange={(e) => setSupportText(e.target.value)}
+                className="w-full mb-4 px-4 py-2 border rounded-lg h-32"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowIssueModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSupportSubmit('issue')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Feature Modal */}
+        {showFeatureModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4">Request a Feature</h3>
+              <input
+                type="text"
+                placeholder="Feature Title"
+                value={supportTitle}
+                onChange={(e) => setSupportTitle(e.target.value)}
+                className="w-full mb-4 px-4 py-2 border rounded-lg"
+              />
+              <textarea
+                placeholder="Describe the feature..."
+                value={supportText}
+                onChange={(e) => setSupportText(e.target.value)}
+                className="w-full mb-4 px-4 py-2 border rounded-lg h-32"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowFeatureModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSupportSubmit('feature')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
