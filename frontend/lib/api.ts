@@ -76,6 +76,11 @@ export const authApi = {
     const response = await api.post('/api/auth/signup', data);
     return response.data;
   },
+
+  updateProfile: async (data: { phone?: string; name?: string; avatar_url?: string; whatsapp_number?: string }): Promise<User> => {
+    const response = await api.put('/api/auth/me', data);
+    return response.data;
+  },
 };
 
 // Trips API

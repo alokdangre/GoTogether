@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    phone: Optional[str] = Field(None, pattern=r'^\+[1-9]\d{1,14}$', description="Phone number in E.164 format")
     name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = None
     whatsapp_number: Optional[str] = None

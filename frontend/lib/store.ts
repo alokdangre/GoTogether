@@ -109,6 +109,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      updateProfile: async (data: { phone?: string; name?: string }) => {
+        set({ isLoading: true });
+        try {
+          const user = await authApi.updateProfile(data);
+          set({
+            user,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({ isLoading: false });
+          throw new Error(handleApiError(error));
+        }
+      },
+
       logout: () => {
         localStorage.removeItem('auth_token');
         set({

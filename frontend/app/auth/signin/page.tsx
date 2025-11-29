@@ -17,8 +17,8 @@ interface SignInFormData {
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { sendOTP, login, loadUser, isLoading } = useAuthStore();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const { sendOTP, login, loadUser, updateProfile, isLoading } = useAuthStore();
+  const [step, setStep] = useState<'phone' | 'otp' | 'phone_required'>('phone');
   const [requestId, setRequestId] = useState<string>('');
 
   const {
@@ -36,8 +36,14 @@ function SignInContent() {
     if (token) {
       loadUser(token)
         .then(() => {
-          toast.success('Successfully signed in with Google!');
-          router.push('/');
+          const user = useAuthStore.getState().user;
+          if (!user?.phone) {
+            setStep('phone_required');
+            toast('Please add your phone number to continue', { icon: '📱' });
+          } else {
+            toast.success('Successfully signed in with Google!');
+            router.push('/');
+          }
         })
         .catch((error) => {
           console.error('Google login error:', error);
@@ -63,6 +69,17 @@ function SignInContent() {
     } catch (error) {
       console.error('Send OTP error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+    }
+  };
+
+  const handleUpdatePhone = async (data: { phone: string }) => {
+    try {
+      await updateProfile({ phone: data.phone });
+      toast.success('Phone number updated!');
+      router.push('/');
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update phone number');
     }
   };
 
@@ -92,6 +109,8 @@ function SignInContent() {
     console.log('Form submitted:', formattedData);
     if (step === 'phone') {
       handleSendOTP({ phone: formattedPhone });
+    } else if (step === 'phone_required') {
+      handleUpdatePhone({ phone: formattedPhone });
     } else {
       handleVerifyOTP(formattedData);
     }
@@ -119,18 +138,20 @@ function SignInContent() {
           <div className="px-8 py-8">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {step === 'phone' ? 'Sign In' : 'Verify OTP'}
+                {step === 'phone' ? 'Sign In' : step === 'phone_required' ? 'Add Phone Number' : 'Verify OTP'}
               </h2>
               <p className="text-gray-600">
                 {step === 'phone'
                   ? 'Enter your phone number to continue'
-                  : `Enter the OTP sent to +91 ${phoneValue}`
+                  : step === 'phone_required'
+                    ? 'Please enter your phone number to complete your profile'
+                    : `Enter the OTP sent to +91 ${phoneValue}`
                 }
               </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {step === 'phone' ? (
+              {step === 'phone' || step === 'phone_required' ? (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
                   <div className="relative">
@@ -196,10 +217,10 @@ function SignInContent() {
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-3" />
-                    {step === 'phone' ? 'Sending OTP...' : 'Verifying...'}
+                    {step === 'phone' ? 'Sending OTP...' : step === 'phone_required' ? 'Saving...' : 'Verifying...'}
                   </>
                 ) : (
-                  step === 'phone' ? 'Send OTP' : 'Verify & Sign In'
+                  step === 'phone' ? 'Send OTP' : step === 'phone_required' ? 'Save & Continue' : 'Verify & Sign In'
                 )}
               </button>
             </form>

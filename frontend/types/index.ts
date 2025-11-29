@@ -338,6 +338,7 @@ export interface AuthState {
   login: (phone: string, otp: string, requestId: string, signupData?: { name: string; email?: string }) => Promise<void>;
   signup: (email: string, password: string, name: string, phone?: string) => Promise<void>;
   loadUser: (token: string) => Promise<void>;
+  updateProfile: (data: { phone?: string; name?: string }) => Promise<void>;
   logout: () => void;
 }
 

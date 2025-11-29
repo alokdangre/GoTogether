@@ -23,9 +23,41 @@ from ..schemas.auth import (
     EmailVerificationVerify,
     Token,
 )
-from ..schemas.user import User as UserSchema
+from ..schemas.user import User as UserSchema, UserUpdate
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+@router.put("/me", response_model=UserSchema)
+async def update_user_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user details."""
+    if user_update.phone:
+        # Check if phone is already taken
+        existing_user = db.query(User).filter(User.phone == user_update.phone).first()
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Phone number already in use"
+            )
+        current_user.phone = user_update.phone
+        current_user.is_phone_verified = False # Reset verification if phone changes
+    
+    if user_update.name:
+        current_user.name = user_update.name
+    if user_update.avatar_url:
+        current_user.avatar_url = user_update.avatar_url
+    if user_update.whatsapp_number:
+        current_user.whatsapp_number = user_update.whatsapp_number
+    if user_update.password:
+        current_user.hashed_password = get_password_hash(user_update.password)
+        
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 
 @router.post("/otp", response_model=dict)
