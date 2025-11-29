@@ -23,7 +23,7 @@ class Rating(BaseModel):
     testimonial_text = Column(Text, nullable=True)  # Generated testimonial for WhatsApp
     
     # Relationships
-    user = relationship("User", back_populates="ratings")
+    user = relationship("User", back_populates="ratings_given")
     driver = relationship("Driver", back_populates="ratings")
     grouped_ride = relationship("GroupedRide", back_populates="ratings")
     
