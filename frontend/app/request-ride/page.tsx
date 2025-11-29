@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { MapPinIcon, ClockIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
 import LocationInput from '@/components/LocationInput';
 import DateTimePicker from '@/components/DateTimePicker';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
@@ -17,7 +17,6 @@ export default function RequestRidePage() {
     const router = useRouter();
     const { isAuthenticated, user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
-    const [isRailwayStation, setIsRailwayStation] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
@@ -81,10 +80,10 @@ export default function RequestRidePage() {
                 destination_lat: data.destination_lat,
                 destination_lng: data.destination_lng,
                 destination_address: data.destination_address,
-                is_railway_station: isRailwayStation,
-                train_time: isRailwayStation && data.train_time ? new Date(data.train_time).toISOString() : null,
+                is_railway_station: false,
+                train_time: null,
                 requested_time: new Date(data.requested_time).toISOString(),
-                passenger_count: parseInt(data.passenger_count),
+                passenger_count: 1, // Always 1 passenger
                 additional_info: data.additional_info || null
             };
 
@@ -107,11 +106,12 @@ export default function RequestRidePage() {
 
             const result = await response.json();
             console.log('Ride request created:', result);
+            toast.success('Ride request submitted successfully!');
             router.push('/my-rides');
         } catch (error) {
             console.error('Error creating ride request:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to create ride request. Please try again.';
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -202,56 +202,6 @@ export default function RequestRidePage() {
                                 error={errors.requested_time?.message}
                                 required
                             />
-
-                            <div>
-                                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Number of Passengers</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="8"
-                                        defaultValue="1"
-                                        {...register('passenger_count', {
-                                            required: 'Number of passengers is required',
-                                            min: { value: 1, message: 'At least 1 passenger required' },
-                                            max: { value: 8, message: 'Maximum 8 passengers allowed' }
-                                        })}
-                                        className="w-full px-3 py-3 sm:px-4 sm:py-4 pl-9 sm:pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base"
-                                    />
-                                    <UsersIcon className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                                </div>
-                                {errors.passenger_count && (
-                                    <p className="mt-2 text-xs sm:text-sm text-red-600">{errors.passenger_count.message}</p>
-                                )}
-                            </div>
-
-                            {/* Railway Station Checkbox */}
-                            <div className="flex items-start">
-                                <input
-                                    type="checkbox"
-                                    id="railway-station"
-                                    checked={isRailwayStation}
-                                    onChange={(e) => setIsRailwayStation(e.target.checked)}
-                                    className="mt-1 h-4 w-4 sm:h-5 sm:w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor="railway-station" className="ml-3 block text-xs sm:text-sm text-gray-700">
-                                    <span className="font-semibold">Destination is a railway station</span>
-                                    <p className="text-gray-500 mt-1">We'll ask for your train time to ensure timely pickup</p>
-                                </label>
-                            </div>
-
-                            {/* Train Time (conditional) */}
-                            {isRailwayStation && (
-                                <div className="pl-0 sm:pl-8">
-                                    <DateTimePicker
-                                        value={watch('train_time') ? String(watch('train_time')) : undefined}
-                                        onChange={(value) => setValue('train_time', value)}
-                                        label="Train Departure Time"
-                                        error={errors.train_time?.message}
-                                        required={isRailwayStation}
-                                    />
-                                </div>
-                            )}
                         </div>
                     </div>
 

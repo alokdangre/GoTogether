@@ -69,6 +69,12 @@ export default function LocationInput({
 
     if (query.trim()) {
       searchLocations(query);
+      // Always update with current text value
+      onChange({
+        lat: 0,
+        lng: 0,
+        address: query.trim()
+      });
     } else {
       setSuggestions([]);
     }
@@ -91,15 +97,6 @@ export default function LocationInput({
     setTimeout(() => {
       if (!suggestionsRef.current?.contains(e.relatedTarget as Node)) {
         setShowSuggestions(false);
-
-        // If user typed something but didn't select a suggestion, use the text as-is
-        if (inputValue.trim() && !value?.address) {
-          onChange({
-            lat: 0, // Will be geocoded later or use default
-            lng: 0,
-            address: inputValue.trim()
-          });
-        }
       }
     }, 150);
   };
