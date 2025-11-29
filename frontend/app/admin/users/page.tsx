@@ -232,17 +232,6 @@ export default function AdminUsersPage() {
                                                     Delete
                                                 </button>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.is_verified
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {user.is_verified ? 'Verified' : 'Pending'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {new Date(user.created_at).toLocaleDateString()}
-                                            </td>
                                         </tr>
                                     ))
                                 )}

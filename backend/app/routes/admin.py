@@ -438,14 +438,16 @@ async def create_grouped_ride(
     db.add(grouped_ride)
     db.flush() # Get ID
     
+    
     # Update requests and create notifications
     from ..models.ride_notification import RideNotification
+    from ..models.system_notification import SystemNotification
     
     for req in ride_requests:
         req.grouped_ride_id = grouped_ride.id
         req.status = "grouped"
         
-        # Create notification for user
+        # Create ride assignment notification
         notification = RideNotification(
             user_id=req.user_id,
             grouped_ride_id=grouped_ride.id,
@@ -453,6 +455,14 @@ async def create_grouped_ride(
             status="pending"
         )
         db.add(notification)
+        
+        # Create system notification about group chat
+        chat_notification = SystemNotification(
+            user_id=req.user_id,
+            title="Group Chat Available",
+            message=f"Your ride has been grouped! You can now chat with other passengers and the driver. Please accept or reject the ride assignment."
+        )
+        db.add(chat_notification)
     
     db.commit()
     db.refresh(grouped_ride)
