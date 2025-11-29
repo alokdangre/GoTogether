@@ -85,11 +85,15 @@ function SignInContent() {
   };
 
   const onSubmit = (data: SignInFormData) => {
-    console.log('Form submitted:', data);
+    // Prepend +91 to the phone number
+    const formattedPhone = `+91${data.phone}`;
+    const formattedData = { ...data, phone: formattedPhone };
+
+    console.log('Form submitted:', formattedData);
     if (step === 'phone') {
-      handleSendOTP({ phone: data.phone });
+      handleSendOTP({ phone: formattedPhone });
     } else {
-      handleVerifyOTP(data);
+      handleVerifyOTP(formattedData);
     }
   };
 
@@ -120,7 +124,7 @@ function SignInContent() {
               <p className="text-gray-600">
                 {step === 'phone'
                   ? 'Enter your phone number to continue'
-                  : `Enter the OTP sent to ${phoneValue}`
+                  : `Enter the OTP sent to +91 ${phoneValue}`
                 }
               </p>
             </div>
@@ -130,27 +134,27 @@ function SignInContent() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
                   <div className="relative">
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center pointer-events-none">
+                      <PhoneIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-gray-500 font-medium border-r border-gray-300 pr-2 mr-2">+91</span>
+                    </div>
                     <input
                       type="tel"
                       {...register('phone', {
                         required: 'Phone number is required',
                         pattern: {
-                          value: /^\+[1-9]\d{1,14}$/,
-                          message: 'Please enter a valid phone number with country code (e.g., +919876543210)',
+                          value: /^[6-9]\d{9}$/,
+                          message: 'Please enter a valid 10-digit Indian phone number',
                         },
                       })}
-                      defaultValue="+91"
                       placeholder="9876543210"
-                      className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                      className="w-full px-4 py-4 pl-28 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                      maxLength={10}
                     />
-                    <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   </div>
                   {errors.phone && (
                     <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
                   )}
-                  <p className="mt-2 text-xs text-gray-500">
-                    Include country code (e.g., +91 for India)
-                  </p>
                 </div>
               ) : (
                 <div>

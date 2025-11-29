@@ -28,8 +28,12 @@ export default function SignUpPage() {
 
   const onSubmit = async (data: SignUpFormData) => {
     try {
-      console.log('Signing up:', data);
-      await signup(data.email!, data.password!, data.name, data.phone);
+      // Prepend +91 if phone is provided
+      const formattedPhone = data.phone ? `+91${data.phone}` : undefined;
+      const formattedData = { ...data, phone: formattedPhone };
+
+      console.log('Signing up:', formattedData);
+      await signup(formattedData.email!, formattedData.password!, formattedData.name, formattedData.phone);
       toast.success('Account created successfully! Welcome to GoTogether!');
       router.push('/');
     } catch (error) {
@@ -137,19 +141,22 @@ export default function SignUpPage() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number (Optional)</label>
                 <div className="relative">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center pointer-events-none">
+                    <PhoneIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-gray-500 font-medium border-r border-gray-300 pr-2 mr-2">+91</span>
+                  </div>
                   <input
                     type="tel"
                     {...register('phone', {
                       pattern: {
-                        value: /^\+[1-9]\d{1,14}$/,
-                        message: 'Please enter a valid phone number with country code',
+                        value: /^[6-9]\d{9}$/,
+                        message: 'Please enter a valid 10-digit Indian phone number',
                       },
                     })}
-                    defaultValue="+91"
-                    placeholder="+919876543210"
-                    className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                    placeholder="9876543210"
+                    className="w-full px-4 py-4 pl-28 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
+                    maxLength={10}
                   />
-                  <PhoneIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 </div>
                 {errors.phone && (
                   <p className="mt-2 text-sm text-red-600 font-medium">{errors.phone.message}</p>
