@@ -5,8 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { MapPinIcon, ClockIcon, UsersIcon } from '@heroicons/react/24/outline';
 import LocationInput from '@/components/LocationInput';
+import DateTimePicker from '@/components/DateTimePicker';
+import NotificationPermissionModal from '@/components/NotificationPermissionModal';
+import InstallPrompt from '@/components/InstallPrompt';
 import { RideRequestCreate, Location } from '@/types';
 import { useAuthStore } from '@/lib/store';
+import { notificationService } from '@/lib/notificationService';
 import toast from 'react-hot-toast';
 
 export default function RequestRidePage() {
@@ -14,6 +18,8 @@ export default function RequestRidePage() {
     const { isAuthenticated, user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [isRailwayStation, setIsRailwayStation] = useState(false);
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
     // Authentication check - redirect to sign-in if not authenticated
     useEffect(() => {
@@ -22,6 +28,32 @@ export default function RequestRidePage() {
             router.push('/auth/signin');
         }
     }, [isAuthenticated, router]);
+
+    // Check for notification permission and install prompt
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        // Show notification modal after 3 seconds if not granted
+        const notifTimer = setTimeout(() => {
+            if (!notificationService.canShowNotifications()) {
+                setShowNotificationModal(true);
+            }
+        }, 3000);
+
+        // Show install prompt after 5 seconds if not installed
+        const installTimer = setTimeout(() => {
+            const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+            const hasSeenPrompt = localStorage.getItem('install-prompt-seen');
+            if (!isInstalled && !hasSeenPrompt) {
+                setShowInstallPrompt(true);
+            }
+        }, 5000);
+
+        return () => {
+            clearTimeout(notifTimer);
+            clearTimeout(installTimer);
+        };
+    }, [isAuthenticated]);
 
     const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<RideRequestCreate>();
 
@@ -162,18 +194,14 @@ export default function RequestRidePage() {
                         </div>
 
                         <div className="space-y-4 sm:space-y-6">
-                            <div>
-                                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Requested Time</label>
-                                <input
-                                    type="datetime-local"
-                                    {...register('requested_time', { required: 'Requested time is required' })}
-                                    className="w-full px-3 py-3 sm:px-4 sm:py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base"
-                                    min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
-                                />
-                                {errors.requested_time && (
-                                    <p className="mt-2 text-xs sm:text-sm text-red-600">{errors.requested_time.message}</p>
-                                )}
-                            </div>
+                            <DateTimePicker
+                                value={watch('requested_time') ? String(watch('requested_time')) : undefined}
+                                onChange={(value) => setValue('requested_time', value)}
+                                label="Requested Time"
+                                minDate={new Date(Date.now() + 5 * 60 * 1000)}
+                                error={errors.requested_time?.message}
+                                required
+                            />
 
                             <div>
                                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Number of Passengers</label>
@@ -215,22 +243,13 @@ export default function RequestRidePage() {
                             {/* Train Time (conditional) */}
                             {isRailwayStation && (
                                 <div className="pl-0 sm:pl-8">
-                                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                                        <svg className="inline h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                                        </svg>
-                                        Train Departure Time
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        {...register('train_time', {
-                                            required: isRailwayStation ? 'Train time is required for railway stations' : false
-                                        })}
-                                        className="w-full px-3 py-3 sm:px-4 sm:py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base"
+                                    <DateTimePicker
+                                        value={watch('train_time') ? String(watch('train_time')) : undefined}
+                                        onChange={(value) => setValue('train_time', value)}
+                                        label="Train Departure Time"
+                                        error={errors.train_time?.message}
+                                        required={isRailwayStation}
                                     />
-                                    {errors.train_time && (
-                                        <p className="mt-2 text-xs sm:text-sm text-red-600">{errors.train_time.message}</p>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -277,6 +296,28 @@ export default function RequestRidePage() {
                     </div>
                 </form>
             </div>
+
+            {/* Modals */}
+            {showNotificationModal && (
+                <NotificationPermissionModal
+                    onClose={() => {
+                        setShowNotificationModal(false);
+                        localStorage.setItem('notification-prompt-seen', 'true');
+                    }}
+                    onPermissionGranted={() => {
+                        toast.success('Notifications enabled! You\'ll receive updates about your rides.');
+                    }}
+                />
+            )}
+
+            {showInstallPrompt && (
+                <InstallPrompt
+                    onClose={() => {
+                        setShowInstallPrompt(false);
+                        localStorage.setItem('install-prompt-seen', 'true');
+                    }}
+                />
+            )}
         </div>
     );
 }

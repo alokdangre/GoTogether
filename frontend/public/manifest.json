@@ -1,20 +1,62 @@
 {
-    "name": "GoTogether",
+    "name": "GoTogether - Ride Sharing",
     "short_name": "GoTogether",
+    "description": "Share rides, save money, and travel together",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#0ea5e9",
+    "theme_color": "#2563eb",
+    "orientation": "portrait-primary",
     "icons": [
         {
-            "src": "/favicon.ico",
-            "sizes": "64x64 32x32 24x24 16x16",
-            "type": "image/x-icon"
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
-            "src": "/icon.svg",
-            "type": "image/svg+xml",
-            "sizes": "192x192 512x512"
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow"
+        }
+    ],
+    "categories": [
+        "travel",
+        "transportation"
+    ],
+    "shortcuts": [
+        {
+            "name": "Request Ride",
+            "short_name": "Request",
+            "description": "Request a new ride",
+            "url": "/request-ride",
+            "icons": [
+                {
+                    "src": "/icon-192x192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "My Rides",
+            "short_name": "Rides",
+            "description": "View your rides",
+            "url": "/my-rides",
+            "icons": [
+                {
+                    "src": "/icon-192x192.png",
+                    "sizes": "192x192"
+                }
+            ]
         }
     ]
 }
