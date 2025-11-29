@@ -7,7 +7,6 @@ import { MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
 import LocationInput from '@/components/LocationInput';
 import DateTimePicker from '@/components/DateTimePicker';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
-import InstallPrompt from '@/components/InstallPrompt';
 import { RideRequestCreate, Location } from '@/types';
 import { useAuthStore } from '@/lib/store';
 import { notificationService } from '@/lib/notificationService';
@@ -18,7 +17,6 @@ export default function RequestRidePage() {
     const { isAuthenticated, user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
-    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
     // Authentication check - redirect to sign-in if not authenticated
     useEffect(() => {
@@ -28,7 +26,7 @@ export default function RequestRidePage() {
         }
     }, [isAuthenticated, router]);
 
-    // Check for notification permission and install prompt
+    // Check for notification permission
     useEffect(() => {
         if (!isAuthenticated) return;
 
@@ -39,18 +37,8 @@ export default function RequestRidePage() {
             }
         }, 3000);
 
-        // Show install prompt after 5 seconds if not installed
-        const installTimer = setTimeout(() => {
-            const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-            const hasSeenPrompt = localStorage.getItem('install-prompt-seen');
-            if (!isInstalled && !hasSeenPrompt) {
-                setShowInstallPrompt(true);
-            }
-        }, 5000);
-
         return () => {
             clearTimeout(notifTimer);
-            clearTimeout(installTimer);
         };
     }, [isAuthenticated]);
 
@@ -67,6 +55,10 @@ export default function RequestRidePage() {
         lng: watch('destination_lng'),
         address: watch('destination_address')
     } : null;
+
+    // Check if we have source and destination addresses (for button state)
+    const hasSourceAddress = watch('source_address')?.trim();
+    const hasDestinationAddress = watch('destination_address')?.trim();
 
     const onSubmit = async (data: any) => {
         setIsLoading(true);
@@ -238,7 +230,7 @@ export default function RequestRidePage() {
                         </button>
                         <button
                             type="submit"
-                            disabled={isLoading || !watchedSource || !watchedDestination}
+                            disabled={isLoading || !hasSourceAddress || !hasDestinationAddress}
                             className="w-full sm:flex-1 px-6 py-3 sm:px-8 sm:py-4 border border-transparent text-sm sm:text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? 'Submitting...' : 'Request Ride'}
@@ -256,15 +248,6 @@ export default function RequestRidePage() {
                     }}
                     onPermissionGranted={() => {
                         toast.success('Notifications enabled! You\'ll receive updates about your rides.');
-                    }}
-                />
-            )}
-
-            {showInstallPrompt && (
-                <InstallPrompt
-                    onClose={() => {
-                        setShowInstallPrompt(false);
-                        localStorage.setItem('install-prompt-seen', 'true');
                     }}
                 />
             )}
