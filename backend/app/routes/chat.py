@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Query
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 from uuid import UUID
@@ -6,11 +7,12 @@ import json
 from datetime import datetime
 
 from ..core.database import get_db
-from ..core.auth import verify_token, get_current_user
+from ..core.auth import verify_token, get_current_user, verify_admin_token, security
 from ..models.chat import ChatMessage
 from ..models.grouped_ride import GroupedRide
 from ..models.ride_request import RideRequest
 from ..models.user import User
+from ..models.admin import Admin
 from ..schemas.chat import ChatMessageCreate, ChatMessage as ChatMessageSchema
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
@@ -45,34 +47,50 @@ manager = ConnectionManager()
 @router.get("/{grouped_ride_id}/history", response_model=List[ChatMessageSchema])
 async def get_chat_history(
     grouped_ride_id: UUID,
-    current_user: User = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
-    # Verify user is part of the ride
-    is_participant = db.query(RideRequest).filter(
-        RideRequest.user_id == current_user.id,
-        RideRequest.grouped_ride_id == grouped_ride_id,
-        RideRequest.status.in_(["accepted", "assigned", "completed"])
-    ).first()
+    token = credentials.credentials
+    actor = None
     
-    if not is_participant:
-        # Check if user is the driver? (Not implemented yet)
-        # Check if user is admin? (Not implemented yet)
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a participant of this ride"
-        )
-         
+    # Check Admin
+    admin_id = verify_admin_token(token)
+    if admin_id:
+        actor = {"type": "admin", "id": admin_id}
+    else:
+        # Check User
+        verified = verify_token(token)
+        if verified:
+            user_id, _ = verified
+            actor = {"type": "user", "id": user_id}
+            
+    if not actor:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    if actor["type"] == "user":
+        # Verify participation
+        is_participant = db.query(RideRequest).filter(
+            RideRequest.user_id == actor["id"],
+            RideRequest.grouped_ride_id == grouped_ride_id,
+            RideRequest.status.in_(["accepted", "assigned", "completed"])
+        ).first()
+        if not is_participant:
+            raise HTTPException(status_code=403, detail="Not a participant")
+            
     messages = db.query(ChatMessage).filter(
         ChatMessage.grouped_ride_id == grouped_ride_id
     ).order_by(ChatMessage.created_at).all()
     
-    # Populate user_name
     result = []
     for msg in messages:
-        sender = db.query(User).filter(User.id == msg.user_id).first()
         msg_dict = ChatMessageSchema.from_orm(msg)
-        msg_dict.user_name = sender.name if sender else "Unknown"
+        if msg.sender_type == "admin":
+            msg_dict.user_name = "Support"
+        elif msg.user_id:
+            sender = db.query(User).filter(User.id == msg.user_id).first()
+            msg_dict.user_name = sender.name if sender else "Unknown"
+        else:
+            msg_dict.user_name = "System"
         result.append(msg_dict)
         
     return result
@@ -85,24 +103,31 @@ async def websocket_endpoint(
     db: Session = Depends(get_db)
 ):
     # Authenticate
-    user_id_str, _ = verify_token(token)
-    if not user_id_str:
+    actor = None
+    admin_id = verify_admin_token(token)
+    if admin_id:
+        actor = {"type": "admin", "id": admin_id}
+    else:
+        verified = verify_token(token)
+        if verified:
+            user_id_str, _ = verified
+            actor = {"type": "user", "id": UUID(user_id_str)}
+            
+    if not actor:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
         
-    user_id = UUID(user_id_str)
-    
-    # Verify participation
-    is_participant = db.query(RideRequest).filter(
-        RideRequest.user_id == user_id,
-        RideRequest.grouped_ride_id == UUID(grouped_ride_id),
-        RideRequest.status.in_(["accepted", "assigned", "completed"])
-    ).first()
-    
-    if not is_participant:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
-    
+    if actor["type"] == "user":
+        # Verify participation
+        is_participant = db.query(RideRequest).filter(
+            RideRequest.user_id == actor["id"],
+            RideRequest.grouped_ride_id == UUID(grouped_ride_id),
+            RideRequest.status.in_(["accepted", "assigned", "completed"])
+        ).first()
+        if not is_participant:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+            
     await manager.connect(websocket, grouped_ride_id)
     
     try:
@@ -112,28 +137,32 @@ async def websocket_endpoint(
             content = message_data.get("content")
             
             if content:
-                # Save to DB
                 new_message = ChatMessage(
                     grouped_ride_id=UUID(grouped_ride_id),
-                    user_id=user_id,
                     content=content,
-                    message_type="text"
+                    message_type="text",
+                    sender_type=actor["type"]
                 )
+                
+                if actor["type"] == "user":
+                    new_message.user_id = actor["id"]
+                    sender_name = db.query(User).filter(User.id == actor["id"]).first().name
+                else:
+                    new_message.admin_id = UUID(actor["id"]) if isinstance(actor["id"], str) else actor["id"]
+                    sender_name = "Support"
+                
                 db.add(new_message)
                 db.commit()
                 db.refresh(new_message)
                 
-                # Get sender name
-                sender = db.query(User).filter(User.id == user_id).first()
-                sender_name = sender.name if sender else "Unknown"
-                
-                # Broadcast
                 response = {
                     "id": str(new_message.id),
                     "grouped_ride_id": str(new_message.grouped_ride_id),
-                    "user_id": str(new_message.user_id),
+                    "user_id": str(new_message.user_id) if new_message.user_id else None,
+                    "admin_id": str(new_message.admin_id) if new_message.admin_id else None,
                     "content": new_message.content,
                     "message_type": new_message.message_type,
+                    "sender_type": new_message.sender_type,
                     "created_at": new_message.created_at.isoformat(),
                     "user_name": sender_name
                 }

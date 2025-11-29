@@ -162,9 +162,20 @@ export default function AdminTripsPage() {
                                             }`}>
                                             {trip.status}
                                         </span>
-                                        <span className="text-lg font-bold text-purple-600">
-                                            ₹{trip.fare_per_seat}
-                                        </span>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/admin/chat/${trip.id}`);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                                            >
+                                                <span className="text-lg">💬</span> Chat
+                                            </button>
+                                            <span className="text-lg font-bold text-purple-600">
+                                                ₹{trip.fare_per_seat}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
