@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { CarIcon, UserIcon, PlusIcon, BellIcon, Menu, X, MapPin } from 'lucide-react';
+import { CarIcon, UserIcon, PlusIcon, BellIcon, Menu, X, MapPin, ArrowLeft } from 'lucide-react';
 import { PhoneIcon, FlagIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -89,10 +89,23 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 z-50">
-            <CarIcon className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">GoTogether</span>
-          </Link>
+          <div className="flex items-center space-x-3">
+            {/* Mobile Back Button */}
+            {pathname !== '/' && (
+              <button
+                onClick={() => router.back()}
+                className="md:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
+
+            <Link href="/" className="flex items-center space-x-2">
+              <MapPin className="h-6 w-6 text-blue-600" />
+              <span className="text-xl font-bold text-blue-600">GoTogether</span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">

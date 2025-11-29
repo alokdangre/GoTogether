@@ -59,24 +59,41 @@ export default function RequestRidePage() {
     // Check if we have source and destination addresses (for button state)
     const hasSourceAddress = watch('source_address')?.trim();
     const hasDestinationAddress = watch('destination_address')?.trim();
+    const hasRequestedTime = watch('requested_time');
 
     const onSubmit = async (data: any) => {
+        // Validate all required fields
+        if (!data.source_address || !data.source_address.trim()) {
+            toast.error('Please enter a pickup location');
+            return;
+        }
+
+        if (!data.destination_address || !data.destination_address.trim()) {
+            toast.error('Please enter a destination');
+            return;
+        }
+
+        if (!data.requested_time) {
+            toast.error('Please select a date and time for your ride');
+            return;
+        }
+
         setIsLoading(true);
         try {
             const token = localStorage.getItem('auth_token');
 
             const requestBody = {
-                source_lat: data.source_lat,
-                source_lng: data.source_lng,
-                source_address: data.source_address,
-                destination_lat: data.destination_lat,
-                destination_lng: data.destination_lng,
-                destination_address: data.destination_address,
+                source_lat: data.source_lat || 0,
+                source_lng: data.source_lng || 0,
+                source_address: data.source_address.trim(),
+                destination_lat: data.destination_lat || 0,
+                destination_lng: data.destination_lng || 0,
+                destination_address: data.destination_address.trim(),
                 is_railway_station: false,
                 train_time: null,
                 requested_time: new Date(data.requested_time).toISOString(),
                 passenger_count: 1, // Always 1 passenger
-                additional_info: data.additional_info || null
+                additional_info: data.additional_info?.trim() || null
             };
 
             console.log('Sending ride request:', requestBody);

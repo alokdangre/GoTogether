@@ -77,7 +77,18 @@ function SignInContent() {
       toast.success('Successfully signed in!');
       router.push('/');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      const errorMessage = error.message || 'Failed to sign in';
+
+      // Check if error indicates user doesn't exist
+      if (errorMessage.toLowerCase().includes('user not found') ||
+        errorMessage.toLowerCase().includes('does not exist') ||
+        errorMessage.toLowerCase().includes('invalid credentials') ||
+        errorMessage.toLowerCase().includes('not found')) {
+        toast.error('Account not found. Please sign up first!', { duration: 5000 });
+        setTimeout(() => router.push('/auth/signup'), 2000);
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
