@@ -93,18 +93,25 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                 const message = JSON.parse(event.data);
                 setMessages((prev) => [...prev, message]);
 
-                // Show notification if message is from someone else and page is not focused
+                // Show notification if message is from someone else
                 if (message.notification) {
+                    console.log('Message has notification data:', message.notification);
+
                     const isMyMessage =
                         (message.sender_type === 'user' && message.user_id === myId) ||
                         (message.sender_type === 'admin' && message.admin_id === myId);
 
-                    if (!isMyMessage) {
-                        // Check if page is not in focus or user is not on this chat page
-                        const shouldNotify = !document.hasFocus() || !window.location.pathname.includes(`/chat/${groupedRideId}`);
+                    console.log('Is my message?', isMyMessage);
+                    console.log('My ID:', myId);
+                    console.log('Sender ID:', message.user_id || message.admin_id);
+                    console.log('Can show notifications?', notificationService.canShowNotifications());
 
-                        if (shouldNotify && notificationService.canShowNotifications()) {
-                            notificationService.showNotification(
+                    if (!isMyMessage) {
+                        // Always show notification for messages from others (removed focus check for testing)
+                        console.log('Attempting to show notification...');
+
+                        if (notificationService.canShowNotifications()) {
+                            const notification = notificationService.showNotification(
                                 message.notification.title,
                                 {
                                     body: message.notification.body,
@@ -119,6 +126,10 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                                     }
                                 }
                             );
+                            console.log('Notification shown:', notification);
+                        } else {
+                            console.warn('Notification permission not granted!');
+                            console.log('Current permission:', Notification.permission);
                         }
                     }
                 }
@@ -153,6 +164,31 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         }
     };
 
+    // Test notification function
+    const testNotification = () => {
+        console.log('Testing notification...');
+        console.log('Permission:', Notification.permission);
+
+        if (Notification.permission === 'granted') {
+            notificationService.showNotification('Test Notification', {
+                body: 'This is a test notification from GoTogether!',
+                tag: 'test'
+            });
+        } else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                console.log('Permission result:', permission);
+                if (permission === 'granted') {
+                    notificationService.showNotification('Test Notification', {
+                        body: 'Permission granted! Notifications will work now.',
+                        tag: 'test'
+                    });
+                }
+            });
+        } else {
+            alert('Notifications are blocked. Please enable them in your browser settings.');
+        }
+    };
+
     // Scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -164,6 +200,13 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                 <div className="p-3 bg-[#008069] text-white rounded-t-lg flex items-center shadow-sm shrink-0">
                     <h3 className="font-semibold text-sm flex-1">Group Chat</h3>
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={testNotification}
+                            className="px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors"
+                            title="Test notifications"
+                        >
+                            🔔 Test
+                        </button>
                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
                         <p className="text-xs opacity-80">{isConnected ? 'Connected' : 'Connecting...'}</p>
                     </div>

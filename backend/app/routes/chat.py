@@ -105,9 +105,10 @@ async def get_chat_history(
 async def websocket_endpoint(
     websocket: WebSocket,
     grouped_ride_id: str,
-    token: str = Query(...),
-    db: Session = Depends(get_db)
+    token: str = Query(...)
 ):
+    from ..core.database import SessionLocal
+    
     # Authenticate
     actor = None
     admin_id = verify_admin_token(token)
@@ -124,15 +125,19 @@ async def websocket_endpoint(
         return
         
     if actor["type"] == "user":
-        # Verify participation
-        is_participant = db.query(RideRequest).filter(
-            RideRequest.user_id == actor["id"],
-            RideRequest.grouped_ride_id == UUID(grouped_ride_id),
-            RideRequest.status.in_(["grouped", "accepted", "assigned", "completed"])
-        ).first()
-        if not is_participant:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
+        # Verify participation - create session for this check
+        db = SessionLocal()
+        try:
+            is_participant = db.query(RideRequest).filter(
+                RideRequest.user_id == actor["id"],
+                RideRequest.grouped_ride_id == UUID(grouped_ride_id),
+                RideRequest.status.in_(["grouped", "accepted", "assigned", "completed"])
+            ).first()
+            if not is_participant:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+        finally:
+            db.close()
             
     await manager.connect(websocket, grouped_ride_id)
     
@@ -143,44 +148,49 @@ async def websocket_endpoint(
             content = message_data.get("content")
             
             if content:
-                new_message = ChatMessage(
-                    grouped_ride_id=UUID(grouped_ride_id),
-                    content=content,
-                    message_type="text",
-                    sender_type=actor["type"]
-                )
-                
-                if actor["type"] == "user":
-                    new_message.user_id = actor["id"]
-                    sender_name = db.query(User).filter(User.id == actor["id"]).first().name
-                else:
-                    new_message.admin_id = UUID(actor["id"]) if isinstance(actor["id"], str) else actor["id"]
-                    sender_name = "Support"
-                
-                db.add(new_message)
-                db.commit()
-                db.refresh(new_message)
-                
-                response = {
-                    "id": str(new_message.id),
-                    "grouped_ride_id": str(new_message.grouped_ride_id),
-                    "user_id": str(new_message.user_id) if new_message.user_id else None,
-                    "admin_id": str(new_message.admin_id) if new_message.admin_id else None,
-                    "content": new_message.content,
-                    "message_type": new_message.message_type,
-                    "sender_type": new_message.sender_type,
-                    "created_at": new_message.created_at.isoformat(),
-                    "user_name": sender_name,
-                    "notification": {
-                        "title": f"New message in group",
-                        "body": f"{sender_name}: {content[:50]}{'...' if len(content) > 50 else ''}",
-                        "sender_id": str(actor["id"]),
-                        "sender_type": actor["type"]
+                # Create a new session for each message
+                db = SessionLocal()
+                try:
+                    new_message = ChatMessage(
+                        grouped_ride_id=UUID(grouped_ride_id),
+                        content=content,
+                        message_type="text",
+                        sender_type=actor["type"]
+                    )
+                    
+                    if actor["type"] == "user":
+                        new_message.user_id = actor["id"]
+                        sender = db.query(User).filter(User.id == actor["id"]).first()
+                        sender_name = sender.name if sender else "Unknown"
+                    else:
+                        new_message.admin_id = UUID(actor["id"]) if isinstance(actor["id"], str) else actor["id"]
+                        sender_name = "Support"
+                    
+                    db.add(new_message)
+                    db.commit()
+                    db.refresh(new_message)
+                    
+                    response = {
+                        "id": str(new_message.id),
+                        "grouped_ride_id": str(new_message.grouped_ride_id),
+                        "user_id": str(new_message.user_id) if new_message.user_id else None,
+                        "admin_id": str(new_message.admin_id) if new_message.admin_id else None,
+                        "content": new_message.content,
+                        "message_type": new_message.message_type,
+                        "sender_type": new_message.sender_type,
+                        "created_at": new_message.created_at.isoformat(),
+                        "user_name": sender_name,
+                        "notification": {
+                            "title": f"New message in group",
+                            "body": f"{sender_name}: {content[:50]}{'...' if len(content) > 50 else ''}",
+                            "sender_id": str(actor["id"]),
+                            "sender_type": actor["type"]
+                        }
                     }
-                }
-                
-                await manager.broadcast(response, grouped_ride_id)
+                    
+                    await manager.broadcast(response, grouped_ride_id)
+                finally:
+                    db.close()
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, grouped_ride_id)
-
