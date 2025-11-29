@@ -52,7 +52,7 @@ async def list_support_requests(
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    requests = db.query(SupportRequest).order_by(SupportRequest.created_at.desc()).all()
+    requests = db.query(SupportRequest).join(User).order_by(SupportRequest.created_at.desc()).all()
     
     result = []
     for req in requests:

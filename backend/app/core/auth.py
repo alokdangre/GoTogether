@@ -213,6 +213,9 @@ async def get_current_admin(
     db: Session = Depends(get_db)
 ):
     """Get current authenticated admin from JWT token"""
+    # Import here to avoid circular imports if any, though top-level import is better if possible.
+    # Checking top level imports: from ..models.admin import Admin is NOT present at top level in auth.py
+    # It was imported inside the function in the previous version too.
     from ..models.admin import Admin
     
     credentials_exception = HTTPException(

@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column('admins', 'full_name', new_column_name='name')
+    pass
 
 
 def downgrade() -> None:

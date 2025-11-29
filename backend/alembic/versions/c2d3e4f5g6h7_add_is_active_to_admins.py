@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column('admins', sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False))
+    pass
 
 
 def downgrade() -> None:
