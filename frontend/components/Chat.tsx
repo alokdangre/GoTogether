@@ -144,7 +144,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {!isConnected && (
                     <div className="text-center text-yellow-600 text-sm mt-4 bg-yellow-50 p-3 rounded-lg">
                         Connecting to chat server...

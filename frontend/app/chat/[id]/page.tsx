@@ -26,7 +26,7 @@ export default function ChatPage() {
     }, [id]);
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-4rem)] bg-gray-100 overflow-hidden">
+        <div className="flex flex-col h-[calc(100dvh-65px)] bg-gray-100 overflow-hidden">
             {/* Header */}
             <div className="bg-[#008069] p-3 shadow-sm flex items-center gap-3 z-10 text-white shrink-0">
                 <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full">
