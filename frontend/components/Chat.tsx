@@ -68,11 +68,20 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         }
 
         // Determine WS URL (handle https/wss and http/ws)
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = process.env.NEXT_PUBLIC_API_URL
-            ? new URL(process.env.NEXT_PUBLIC_API_URL).host
-            : 'localhost:8000';
-        const wsUrl = `${protocol}//${host}/api/chat/${groupedRideId}?token=${token}`;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        let wsUrl: string;
+
+        if (apiUrl.startsWith('https://')) {
+            wsUrl = apiUrl.replace('https://', 'wss://');
+        } else if (apiUrl.startsWith('http://')) {
+            wsUrl = apiUrl.replace('http://', 'ws://');
+        } else {
+            // Fallback: use current protocol
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsUrl = `${protocol}//${apiUrl}`;
+        }
+
+        wsUrl = `${wsUrl}/api/chat/${groupedRideId}?token=${encodeURIComponent(token)}`;
 
         console.log('Connecting to WS:', wsUrl);
         const ws = new WebSocket(wsUrl);
@@ -128,11 +137,19 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             {!fullScreen && (
                 <div className="p-3 bg-[#008069] text-white rounded-t-lg flex items-center shadow-sm shrink-0">
                     <h3 className="font-semibold text-sm flex-1">Group Chat</h3>
-                    <p className="text-xs opacity-80">End-to-end encrypted</p>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+                        <p className="text-xs opacity-80">{isConnected ? 'Connected' : 'Connecting...'}</p>
+                    </div>
                 </div>
             )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10">
+                {!isConnected && (
+                    <div className="text-center text-yellow-600 text-sm mt-4 bg-yellow-50 p-3 rounded-lg">
+                        Connecting to chat server...
+                    </div>
+                )}
                 {messages.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm mt-10">
                         No messages yet. Say hello! 👋
@@ -172,7 +189,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Type a message"
+                    placeholder={isConnected ? "Type a message" : "Connecting to chat..."}
                     className="flex-1 rounded-lg border-none px-4 py-2 focus:ring-0 bg-white shadow-sm"
                     disabled={!isConnected}
                 />
