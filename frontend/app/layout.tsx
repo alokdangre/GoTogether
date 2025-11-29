@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 import Header from '@/components/Header';
+import AuthProvider from '@/components/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -58,30 +59,32 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="GoTogether" />
       </head>
       <body className={inter.className}>
-        <Header />
-        <div className="min-h-screen bg-gray-50">
-          {children}
-        </div>
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
+        <AuthProvider>
+          <Header />
+          <div className="min-h-screen bg-gray-50">
+            {children}
+          </div>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 4000,
               style: {
-                background: '#10b981',
+                background: '#363636',
+                color: '#fff',
               },
-            },
-            error: {
-              style: {
-                background: '#ef4444',
+              success: {
+                style: {
+                  background: '#10b981',
+                },
               },
-            },
-          }}
-        />
+              error: {
+                style: {
+                  background: '#ef4444',
+                },
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );
