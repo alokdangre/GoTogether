@@ -4,6 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { CarIcon, UserIcon, PlusIcon, BellIcon, Menu, X, MapPin } from 'lucide-react';
+import { PhoneIcon, FlagIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+import axios from 'axios';
 
 import { useAuthStore } from '@/lib/store';
 
@@ -12,6 +15,58 @@ export default function Header() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showFeatureModal, setShowFeatureModal] = useState(false);
+  const [supportText, setSupportText] = useState('');
+  const [supportTitle, setSupportTitle] = useState('');
+
+  const handleSupportSubmit = async (type: 'issue' | 'feature') => {
+    if (!supportTitle || !supportText) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      await axios.post(`${apiUrl}/api/support/`, {
+        type,
+        title: supportTitle,
+        description: supportText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('Request submitted successfully');
+      setShowIssueModal(false);
+      setShowFeatureModal(false);
+      setSupportTitle('');
+      setSupportText('');
+      setIsMobileMenuOpen(false);
+    } catch (error) {
+      toast.error('Failed to submit request');
+    }
+  };
+
+  const handleCallRequest = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      await axios.post(`${apiUrl}/api/support/`, {
+        type: 'call',
+        title: 'Call Request',
+        description: 'User requested a call back'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('It will be done soon');
+      setIsMobileMenuOpen(false);
+    } catch (error) {
+      toast.error('Failed to request call');
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -48,8 +103,8 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium transition-colors ${pathname === link.href
-                    ? 'text-blue-600 bg-blue-50 rounded-lg'
-                    : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-blue-600 bg-blue-50 rounded-lg'
+                  : 'text-gray-700 hover:text-blue-600'
                   }`}
               >
                 {link.icon && <link.icon className="h-4 w-4" />}
@@ -65,8 +120,8 @@ export default function Header() {
                 <Link
                   href="/notifications"
                   className={`p-2 rounded-full transition-colors ${pathname === '/notifications'
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
                     }`}
                   title="Notifications"
                 >
@@ -82,8 +137,8 @@ export default function Header() {
                   <Link
                     href="/profile"
                     className={`p-2 rounded-full transition-colors ${pathname === '/profile'
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
                       }`}
                     title="Profile"
                   >
@@ -155,8 +210,8 @@ export default function Header() {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${pathname === link.href
-                    ? 'bg-blue-50 text-blue-600 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-blue-50 text-blue-600 font-medium'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
               >
                 {link.icon && <link.icon className="h-5 w-5" />}
@@ -170,8 +225,8 @@ export default function Header() {
                   href="/notifications"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${pathname === '/notifications'
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-blue-50 text-blue-600 font-medium'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
                   <BellIcon className="h-5 w-5" />
@@ -181,8 +236,8 @@ export default function Header() {
                   href="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${pathname === '/profile'
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-blue-50 text-blue-600 font-medium'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
                   <UserIcon className="h-5 w-5" />
@@ -192,7 +247,42 @@ export default function Header() {
             )}
           </nav>
 
-          <div className="pt-8 border-t border-gray-100">
+          <div className="pt-4 border-t border-gray-100 space-y-2">
+            {isAuthenticated && (
+              <>
+                <button
+                  onClick={() => {
+                    setSupportTitle('');
+                    setSupportText('');
+                    setShowIssueModal(true);
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <FlagIcon className="h-5 w-5" />
+                  <span>Report Issue</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSupportTitle('');
+                    setSupportText('');
+                    setShowFeatureModal(true);
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                  <span>Request Feature</span>
+                </button>
+                <button
+                  onClick={handleCallRequest}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors font-medium"
+                >
+                  <PhoneIcon className="h-5 w-5" />
+                  <span>Request Call Back</span>
+                </button>
+                <div className="h-px bg-gray-100 my-2" />
+              </>
+            )}
+
             {isAuthenticated ? (
               <button
                 onClick={handleLogout}
@@ -212,6 +302,77 @@ export default function Header() {
           </div>
         </div>
       </div>
+      {/* Issue Modal */}
+      {showIssueModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Report an Issue</h3>
+            <input
+              type="text"
+              placeholder="Issue Title"
+              value={supportTitle}
+              onChange={(e) => setSupportTitle(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded-lg"
+            />
+            <textarea
+              placeholder="Describe the issue..."
+              value={supportText}
+              onChange={(e) => setSupportText(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded-lg h-32"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowIssueModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSupportSubmit('issue')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feature Modal */}
+      {showFeatureModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Request a Feature</h3>
+            <input
+              type="text"
+              placeholder="Feature Title"
+              value={supportTitle}
+              onChange={(e) => setSupportTitle(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded-lg"
+            />
+            <textarea
+              placeholder="Describe the feature..."
+              value={supportText}
+              onChange={(e) => setSupportText(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded-lg h-32"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowFeatureModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSupportSubmit('feature')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
