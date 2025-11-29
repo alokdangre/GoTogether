@@ -73,7 +73,7 @@ async def get_chat_history(
             is_participant = db.query(RideRequest).filter(
                 RideRequest.user_id == actor["id"],
                 RideRequest.grouped_ride_id == grouped_ride_id,
-                RideRequest.status.in_(["accepted", "assigned", "completed"])
+                RideRequest.status.in_(["grouped", "accepted", "assigned", "completed"])
             ).first()
             if not is_participant:
                 raise HTTPException(status_code=403, detail="Not a participant")
@@ -128,7 +128,7 @@ async def websocket_endpoint(
         is_participant = db.query(RideRequest).filter(
             RideRequest.user_id == actor["id"],
             RideRequest.grouped_ride_id == UUID(grouped_ride_id),
-            RideRequest.status.in_(["accepted", "assigned", "completed"])
+            RideRequest.status.in_(["grouped", "accepted", "assigned", "completed"])
         ).first()
         if not is_participant:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
