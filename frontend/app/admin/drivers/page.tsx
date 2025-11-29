@@ -36,6 +36,7 @@ export default function AdminDriversPage() {
         vehicle_type: '',
         vehicle_make: '',
         vehicle_model: '',
+        vehicle_color: '',
         vehicle_plate_number: '',
     });
     const [sortBy, setSortBy] = useState('default');
@@ -74,15 +75,50 @@ export default function AdminDriversPage() {
         const token = localStorage.getItem('admin_token');
 
         try {
-            // Clean data
-            const dataToSend = {
-                ...formData,
-                email: formData.email || undefined, // Send undefined if empty string
-                // Ensure phone starts with + if not present. 
-                // Note: This assumes the user enters a valid number. 
-                // Ideally we should have better validation/input mask.
-                phone: formData.phone.startsWith('+') ? formData.phone : `+${formData.phone}`
+            // Validate and format phone number
+            let phone = formData.phone.trim();
+
+            // Remove any spaces or dashes
+            phone = phone.replace(/[\s-]/g, '');
+
+            // Add + if not present
+            if (!phone.startsWith('+')) {
+                phone = '+' + phone;
+            }
+
+            // Validate phone format
+            if (!/^\+[1-9]\d{1,14}$/.test(phone)) {
+                toast.error('Invalid phone number format. Use format: +[country code][number] (e.g., +919876543210)');
+                return;
+            }
+
+            // Clean data - remove empty strings
+            const dataToSend: any = {
+                phone,
+                name: formData.name.trim(),
             };
+
+            if (formData.email && formData.email.trim()) {
+                dataToSend.email = formData.email.trim();
+            }
+            if (formData.license_number && formData.license_number.trim()) {
+                dataToSend.license_number = formData.license_number.trim();
+            }
+            if (formData.vehicle_type && formData.vehicle_type.trim()) {
+                dataToSend.vehicle_type = formData.vehicle_type.trim();
+            }
+            if (formData.vehicle_make && formData.vehicle_make.trim()) {
+                dataToSend.vehicle_make = formData.vehicle_make.trim();
+            }
+            if (formData.vehicle_model && formData.vehicle_model.trim()) {
+                dataToSend.vehicle_model = formData.vehicle_model.trim();
+            }
+            if (formData.vehicle_color && formData.vehicle_color.trim()) {
+                dataToSend.vehicle_color = formData.vehicle_color.trim();
+            }
+            if (formData.vehicle_plate_number && formData.vehicle_plate_number.trim()) {
+                dataToSend.vehicle_plate_number = formData.vehicle_plate_number.trim();
+            }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             await axios.post(`${apiUrl}/api/admin/drivers`, dataToSend, {
@@ -99,11 +135,20 @@ export default function AdminDriversPage() {
                 vehicle_type: '',
                 vehicle_make: '',
                 vehicle_model: '',
+                vehicle_color: '',
                 vehicle_plate_number: '',
             });
             fetchDrivers();
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || 'Failed to add driver');
+            const errorMsg = error.response?.data?.detail;
+            if (typeof errorMsg === 'string') {
+                toast.error(errorMsg);
+            } else if (Array.isArray(errorMsg)) {
+                toast.error(errorMsg.map((e: any) => e.msg || e.message).join(', '));
+            } else {
+                toast.error('Failed to add driver');
+            }
+            console.error('Error adding driver:', error);
         }
     };
 
@@ -233,6 +278,13 @@ export default function AdminDriversPage() {
                                 placeholder="Vehicle Model"
                                 value={formData.vehicle_model}
                                 onChange={(e) => setFormData({ ...formData, vehicle_model: e.target.value })}
+                                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Vehicle Color"
+                                value={formData.vehicle_color}
+                                onChange={(e) => setFormData({ ...formData, vehicle_color: e.target.value })}
                                 className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                             />
                             <input

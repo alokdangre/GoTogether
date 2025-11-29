@@ -67,16 +67,17 @@ async def create_driver(
             )
     
     # Create standalone driver entity
+    # Convert empty strings to None for optional fields to avoid unique constraint issues
     driver = Driver(
         phone=request.phone,
         name=request.name,
-        email=request.email,
-        license_number=request.license_number,
-        vehicle_type=request.vehicle_type,
-        vehicle_make=request.vehicle_make,
-        vehicle_model=request.vehicle_model,
-        vehicle_color=request.vehicle_color,
-        vehicle_plate_number=request.vehicle_plate_number,
+        email=request.email if request.email else None,
+        license_number=request.license_number if request.license_number else None,
+        vehicle_type=request.vehicle_type if request.vehicle_type else None,
+        vehicle_make=request.vehicle_make if request.vehicle_make else None,
+        vehicle_model=request.vehicle_model if request.vehicle_model else None,
+        vehicle_color=request.vehicle_color if request.vehicle_color else None,
+        vehicle_plate_number=request.vehicle_plate_number if request.vehicle_plate_number else None,
         is_verified=False,  # Needs manual verification
         is_active=True,
     )
