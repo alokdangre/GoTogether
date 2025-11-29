@@ -20,6 +20,32 @@ export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+    const [selectedUserForNotification, setSelectedUserForNotification] = useState<User | null>(null);
+    const [notificationTitle, setNotificationTitle] = useState('');
+    const [notificationMessage, setNotificationMessage] = useState('');
+
+    const fetchUsers = async () => {
+        const token = localStorage.getItem('admin_token');
+        if (!token) return;
+
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await axios.get(`${apiUrl}/api/admin/users?limit=1000`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setUsers(response.data);
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                toast.error('Session expired');
+                router.push('/admin/login');
+            } else {
+                toast.error('Failed to load users');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
@@ -27,28 +53,29 @@ export default function AdminUsersPage() {
             router.push('/admin/login');
             return;
         }
-
-        const fetchUsers = async () => {
-            try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const response = await axios.get(`${apiUrl}/api/admin/users?limit=1000`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setUsers(response.data);
-            } catch (error: any) {
-                if (error.response?.status === 401) {
-                    toast.error('Session expired');
-                    router.push('/admin/login');
-                } else {
-                    toast.error('Failed to load users');
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchUsers();
     }, [router]);
+
+    const sendCustomNotification = async () => {
+        if (!selectedUserForNotification || !notificationTitle || !notificationMessage) return;
+
+        try {
+            const token = localStorage.getItem('admin_token');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            await axios.post(
+                `${apiUrl}/api/admin/users/${selectedUserForNotification.id}/notify`,
+                { title: notificationTitle, message: notificationMessage },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Notification sent successfully');
+            setNotificationModalOpen(false);
+            setNotificationTitle('');
+            setNotificationMessage('');
+            setSelectedUserForNotification(null);
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || 'Failed to send notification');
+        }
+    };
 
     const filteredUsers = users.filter(
         (user) =>
@@ -110,18 +137,21 @@ export default function AdminUsersPage() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Joined
                                     </th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                             Loading users...
                                         </td>
                                     </tr>
                                 ) : filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                             No users found
                                         </td>
                                     </tr>
@@ -154,11 +184,53 @@ export default function AdminUsersPage() {
                                                             }}
                                                             className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                                                         >
-                                                            Notify
+                                                            Notify Phone
                                                         </button>
                                                     </div>
                                                 )}
                                                 <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.is_verified
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                    {user.is_verified ? 'Verified' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUserForNotification(user);
+                                                        setNotificationModalOpen(true);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 mr-4"
+                                                >
+                                                    Message
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) return;
+                                                        try {
+                                                            const token = localStorage.getItem('admin_token');
+                                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                            await axios.delete(
+                                                                `${apiUrl}/api/admin/users/${user.id}`,
+                                                                { headers: { Authorization: `Bearer ${token}` } }
+                                                            );
+                                                            toast.success('User deleted successfully');
+                                                            fetchUsers();
+                                                        } catch (error: any) {
+                                                            toast.error(error.response?.data?.detail || 'Failed to delete user');
+                                                        }
+                                                    }}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Delete
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${user.is_verified

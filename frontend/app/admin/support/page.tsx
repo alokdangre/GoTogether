@@ -106,8 +106,8 @@ export default function AdminSupportPage() {
                                         <tr key={req.id}>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${req.type === 'issue' ? 'bg-red-100 text-red-800' :
-                                                        req.type === 'feature' ? 'bg-purple-100 text-purple-800' :
-                                                            'bg-blue-100 text-blue-800'
+                                                    req.type === 'feature' ? 'bg-purple-100 text-purple-800' :
+                                                        'bg-blue-100 text-blue-800'
                                                     }`}>
                                                     {req.type.toUpperCase()}
                                                 </span>
@@ -122,8 +122,8 @@ export default function AdminSupportPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${req.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        req.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                    req.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {req.status}
                                                 </span>
@@ -132,16 +132,37 @@ export default function AdminSupportPage() {
                                                 {new Date(req.created_at).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <select
-                                                    value={req.status}
-                                                    onChange={(e) => handleStatusUpdate(req.id, e.target.value)}
-                                                    className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                                >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="in_progress">In Progress</option>
-                                                    <option value="resolved">Resolved</option>
-                                                    <option value="rejected">Rejected</option>
-                                                </select>
+                                                <div className="flex items-center space-x-3">
+                                                    <select
+                                                        value={req.status}
+                                                        onChange={(e) => handleStatusUpdate(req.id, e.target.value)}
+                                                        className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                                    >
+                                                        <option value="pending">Pending</option>
+                                                        <option value="in_progress">In Progress</option>
+                                                        <option value="resolved">Resolved</option>
+                                                        <option value="rejected">Rejected</option>
+                                                    </select>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('Are you sure you want to delete this message?')) return;
+                                                            try {
+                                                                const token = localStorage.getItem('admin_token');
+                                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                                await axios.delete(`${apiUrl}/api/admin/support/${req.id}`, {
+                                                                    headers: { Authorization: `Bearer ${token}` }
+                                                                });
+                                                                toast.success('Message deleted');
+                                                                setRequests(requests.filter(r => r.id !== req.id));
+                                                            } catch (error) {
+                                                                toast.error('Failed to delete message');
+                                                            }
+                                                        }}
+                                                        className="text-red-600 hover:text-red-900 text-sm font-medium"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

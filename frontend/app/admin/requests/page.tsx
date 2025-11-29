@@ -325,9 +325,31 @@ export default function AdminRequestsPage() {
                                             }`}>
                                             {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                                         </span>
-                                        <span className="text-xs text-gray-400">
-                                            {new Date(req.created_at).toLocaleDateString()}
-                                        </span>
+                                        <div className="flex items-center space-x-3">
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (!confirm('Are you sure you want to delete this request?')) return;
+                                                    try {
+                                                        const token = localStorage.getItem('admin_token');
+                                                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                        await axios.delete(`${apiUrl}/api/admin/requests/${req.id}`, {
+                                                            headers: { Authorization: `Bearer ${token}` }
+                                                        });
+                                                        toast.success('Request deleted');
+                                                        setRequests(requests.filter(r => r.id !== req.id));
+                                                    } catch (error) {
+                                                        toast.error('Failed to delete request');
+                                                    }
+                                                }}
+                                                className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                            <span className="text-xs text-gray-400">
+                                                {new Date(req.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
