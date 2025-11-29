@@ -50,50 +50,56 @@ async def get_chat_history(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
-    token = credentials.credentials
-    actor = None
-    
-    # Check Admin
-    admin_id = verify_admin_token(token)
-    if admin_id:
-        actor = {"type": "admin", "id": admin_id}
-    else:
-        # Check User
-        verified = verify_token(token)
-        if verified:
-            user_id, _ = verified
-            actor = {"type": "user", "id": user_id}
-            
-    if not actor:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        token = credentials.credentials
+        actor = None
         
-    if actor["type"] == "user":
-        # Verify participation
-        is_participant = db.query(RideRequest).filter(
-            RideRequest.user_id == actor["id"],
-            RideRequest.grouped_ride_id == grouped_ride_id,
-            RideRequest.status.in_(["accepted", "assigned", "completed"])
-        ).first()
-        if not is_participant:
-            raise HTTPException(status_code=403, detail="Not a participant")
-            
-    messages = db.query(ChatMessage).filter(
-        ChatMessage.grouped_ride_id == grouped_ride_id
-    ).order_by(ChatMessage.created_at).all()
-    
-    result = []
-    for msg in messages:
-        msg_dict = ChatMessageSchema.from_orm(msg)
-        if msg.sender_type == "admin":
-            msg_dict.user_name = "Support"
-        elif msg.user_id:
-            sender = db.query(User).filter(User.id == msg.user_id).first()
-            msg_dict.user_name = sender.name if sender else "Unknown"
+        # Check Admin
+        admin_id = verify_admin_token(token)
+        if admin_id:
+            actor = {"type": "admin", "id": admin_id}
         else:
-            msg_dict.user_name = "System"
-        result.append(msg_dict)
+            # Check User
+            verified = verify_token(token)
+            if verified:
+                user_id, _ = verified
+                actor = {"type": "user", "id": user_id}
+                
+        if not actor:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+        if actor["type"] == "user":
+            # Verify participation
+            is_participant = db.query(RideRequest).filter(
+                RideRequest.user_id == actor["id"],
+                RideRequest.grouped_ride_id == grouped_ride_id,
+                RideRequest.status.in_(["accepted", "assigned", "completed"])
+            ).first()
+            if not is_participant:
+                raise HTTPException(status_code=403, detail="Not a participant")
+                
+        messages = db.query(ChatMessage).filter(
+            ChatMessage.grouped_ride_id == grouped_ride_id
+        ).order_by(ChatMessage.created_at).all()
         
-    return result
+        result = []
+        for msg in messages:
+            msg_dict = ChatMessageSchema.from_orm(msg)
+            if msg.sender_type == "admin":
+                msg_dict.user_name = "Support"
+            elif msg.user_id:
+                sender = db.query(User).filter(User.id == msg.user_id).first()
+                msg_dict.user_name = sender.name if sender else "Unknown"
+            else:
+                msg_dict.user_name = "System"
+            result.append(msg_dict)
+            
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching chat history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.websocket("/{grouped_ride_id}")
 async def websocket_endpoint(

@@ -21,6 +21,7 @@ from .routes import (
     admin_router,
     analytics_router,
     chat_router,
+    trips_router,
 )
 
 # Create FastAPI app
@@ -52,6 +53,7 @@ app.include_router(ratings_router)
 app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
+app.include_router(trips_router)
 
 # WebSocket chat removed - will be reimplemented later if needed
 # For now, focus on core ride request and grouping functionality

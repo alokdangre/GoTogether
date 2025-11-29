@@ -14,7 +14,7 @@ class ChatMessage(BaseModel):
     admin_id: Optional[UUID]
     content: str
     message_type: str
-    sender_type: str
+    sender_type: str = "user"
     created_at: datetime
     user_name: Optional[str] = None
 
