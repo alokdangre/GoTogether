@@ -2,9 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import { MapPinIcon, BellIcon, ClockIcon, CurrencyRupeeIcon } from '@heroicons/react/24/outline';
+import { useAuthStore } from '@/lib/store';
 
 export default function HomePage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleRequestRide = () => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin');
+    } else {
+      router.push('/request-ride');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -19,7 +29,7 @@ export default function HomePage() {
               Affordable shared rides, managed for you
             </p>
             <button
-              onClick={() => router.push('/request-ride')}
+              onClick={handleRequestRide}
               className="inline-flex items-center px-8 py-4 bg-white text-green-700 rounded-2xl font-semibold text-lg hover:bg-green-50 transition-all shadow-2xl transform hover:scale-105"
             >
               <MapPinIcon className="h-6 w-6 mr-2" />
@@ -126,7 +136,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => router.push('/request-ride')}
+              onClick={handleRequestRide}
               className="px-8 py-4 bg-white text-green-700 rounded-2xl font-semibold text-lg hover:bg-green-50 transition-all shadow-xl"
             >
               Request a Ride

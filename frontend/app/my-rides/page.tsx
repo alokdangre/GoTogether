@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Tab } from '@headlessui/react';
 import { ClockIcon, CheckCircleIcon, XCircleIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import { RideRequest, GroupedRideDetail, UserStats } from '@/types';
+import { useAuthStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 export default function MyRidesPage() {
     const router = useRouter();
+    const { isAuthenticated } = useAuthStore();
     const [pendingRequests, setPendingRequests] = useState<RideRequest[]>([]);
     const [upcomingRides, setUpcomingRides] = useState<GroupedRideDetail[]>([]);
     const [completedRides, setCompletedRides] = useState<GroupedRideDetail[]>([]);
@@ -15,8 +18,13 @@ export default function MyRidesPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            toast.error('Please sign in to view your rides');
+            router.push('/auth/signin');
+            return;
+        }
         fetchData();
-    }, []);
+    }, [isAuthenticated, router]);
 
     const fetchData = async () => {
         try {

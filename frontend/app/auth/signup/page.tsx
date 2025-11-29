@@ -145,6 +145,7 @@ export default function SignUpPage() {
                         message: 'Please enter a valid phone number with country code',
                       },
                     })}
+                    defaultValue="+91"
                     placeholder="+919876543210"
                     className="w-full px-4 py-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-gray-900 font-medium"
                   />

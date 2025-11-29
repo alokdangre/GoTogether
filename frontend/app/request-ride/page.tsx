@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { MapPinIcon, ClockIcon, UsersIcon } from '@heroicons/react/24/outline';
 import LocationInput from '@/components/LocationInput';
 import { RideRequestCreate, Location } from '@/types';
+import { useAuthStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 export default function RequestRidePage() {
     const router = useRouter();
+    const { isAuthenticated, user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [isRailwayStation, setIsRailwayStation] = useState(false);
+
+    // Authentication check - redirect to sign-in if not authenticated
+    useEffect(() => {
+        if (!isAuthenticated) {
+            toast.error('Please sign in to request a ride');
+            router.push('/auth/signin');
+        }
+    }, [isAuthenticated, router]);
 
     const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<RideRequestCreate>();
 
