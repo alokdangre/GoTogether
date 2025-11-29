@@ -97,14 +97,19 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error) {
-          localStorage.removeItem('auth_token');
-          set({
-            token: null,
-            user: null,
-            isAuthenticated: false,
-            isLoading: false
-          });
+        } catch (error: any) {
+          // Only clear session if unauthorized (401)
+          if (error.response?.status === 401) {
+            localStorage.removeItem('auth_token');
+            set({
+              token: null,
+              user: null,
+              isAuthenticated: false,
+              isLoading: false
+            });
+          } else {
+            set({ isLoading: false });
+          }
           throw new Error(handleApiError(error));
         }
       },
