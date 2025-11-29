@@ -84,11 +84,17 @@ export const useAuthStore = create<AuthState>()(
       signup: async (email: string, password: string, name: string, phone?: string): Promise<void> => {
         set({ isLoading: true });
         try {
+          // Format phone number to E.164 if provided
+          let formattedPhone = phone;
+          if (phone && /^\d{10}$/.test(phone)) {
+            formattedPhone = `+91${phone}`;
+          }
+
           const response = await authApi.signup({
             email,
             password,
             name,
-            phone
+            phone: formattedPhone
           });
 
           // Store token in localStorage

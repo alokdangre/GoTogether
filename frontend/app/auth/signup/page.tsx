@@ -18,7 +18,8 @@ export default function SignUpPage() {
     defaultValues: {
       name: '',
       email: '',
-      password: ''
+      password: '',
+      phone: ''
     }
   });
 
@@ -58,7 +59,7 @@ export default function SignUpPage() {
 
   const onSubmit = async (data: any) => {
     try {
-      await signup(data.email, data.password, data.name);
+      await signup(data.email, data.password, data.name, data.phone);
       toast.success('Account created successfully!');
       router.push('/');
     } catch (error: any) {
@@ -105,12 +106,36 @@ export default function SignUpPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                 <input
-                  {...register('email', { required: 'Email is required' })}
+                  {...register('email', {
+                    required: 'Email is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
+                  })}
                   type="email"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="you@example.com"
                 />
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message as string}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                  {...register('phone', {
+                    required: 'Phone number is required',
+                    pattern: {
+                      value: /^[0-9]{10}$/,
+                      message: 'Please enter a valid 10-digit phone number'
+                    }
+                  })}
+                  type="tel"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="9876543210"
+                  maxLength={10}
+                />
+                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message as string}</p>}
               </div>
 
               <div>

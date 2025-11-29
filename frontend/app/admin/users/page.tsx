@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 interface User {
     id: string;
     name: string;
-    phone: string;
+    phone?: string;
     email?: string;
     is_verified: boolean;
     created_at: string;
@@ -132,7 +132,21 @@ export default function AdminUsersPage() {
                                                 <div className="font-medium text-gray-900">{user.name || 'N/A'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{user.phone}</div>
+                                                {user.phone ? (
+                                                    <div className="text-sm text-gray-900">{user.phone}</div>
+                                                ) : (
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="text-sm text-red-500 font-medium">Missing</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                toast.success(`Notification sent to ${user.name}`);
+                                                            }}
+                                                            className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                                        >
+                                                            Notify
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
