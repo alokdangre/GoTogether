@@ -62,7 +62,10 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
 
     // Connect WebSocket
     useEffect(() => {
-        if (!token) return;
+        if (!token) {
+            console.log('No token available for WebSocket');
+            return;
+        }
 
         // Determine WS URL (handle https/wss and http/ws)
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -71,23 +74,47 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             : 'localhost:8000';
         const wsUrl = `${protocol}//${host}/api/chat/${groupedRideId}?token=${token}`;
 
+        console.log('Connecting to WS:', wsUrl);
         const ws = new WebSocket(wsUrl);
 
-        ws.onopen = () => setIsConnected(true);
-        ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            setMessages((prev) => [...prev, message]);
+        ws.onopen = () => {
+            console.log('WS Connected');
+            setIsConnected(true);
         };
-        ws.onclose = () => setIsConnected(false);
+
+        ws.onmessage = (event) => {
+            console.log('WS Message received:', event.data);
+            try {
+                const message = JSON.parse(event.data);
+                setMessages((prev) => [...prev, message]);
+            } catch (e) {
+                console.error('Failed to parse message:', e);
+            }
+        };
+
+        ws.onclose = (e) => {
+            console.log('WS Disconnected', e.code, e.reason);
+            setIsConnected(false);
+        };
+
+        ws.onerror = (error) => {
+            console.error('WS Error:', error);
+        };
+
         wsRef.current = ws;
 
-        return () => ws.close();
+        return () => {
+            ws.close();
+        };
     }, [groupedRideId, token]);
 
     const sendMessage = () => {
         if (wsRef.current && newMessage.trim()) {
+            console.log('Sending message:', newMessage);
             wsRef.current.send(JSON.stringify({ content: newMessage }));
             setNewMessage('');
+        } else {
+            console.log('Cannot send message: WS not connected or empty message');
         }
     };
 
@@ -99,7 +126,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
     return (
         <div className={`flex flex-col ${fullScreen ? 'h-full' : 'h-96 rounded-lg border border-gray-200'} bg-[#efeae2]`}>
             {!fullScreen && (
-                <div className="p-3 bg-[#008069] text-white rounded-t-lg flex items-center shadow-sm">
+                <div className="p-3 bg-[#008069] text-white rounded-t-lg flex items-center shadow-sm shrink-0">
                     <h3 className="font-semibold text-sm flex-1">Group Chat</h3>
                     <p className="text-xs opacity-80">End-to-end encrypted</p>
                 </div>
@@ -139,7 +166,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-2 bg-[#f0f2f5] flex items-center gap-2">
+            <div className="p-2 bg-[#f0f2f5] flex items-center gap-2 shrink-0">
                 <input
                     type="text"
                     value={newMessage}
@@ -152,7 +179,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                 <button
                     onClick={sendMessage}
                     disabled={!isConnected || !newMessage.trim()}
-                    className="p-2 rounded-full hover:bg-gray-200 transition-colors text-[#54656f]"
+                    className="p-2 rounded-full hover:bg-gray-200 transition-colors text-[#54656f] disabled:opacity-50"
                 >
                     <PaperAirplaneIcon className="h-6 w-6" />
                 </button>

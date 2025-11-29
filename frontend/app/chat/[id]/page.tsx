@@ -26,22 +26,22 @@ export default function ChatPage() {
     }, [id]);
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100">
+        <div className="flex flex-col h-[100dvh] bg-gray-100">
             {/* Header */}
-            <div className="bg-[#008069] p-4 shadow-sm flex items-center gap-4 z-10 text-white">
-                <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full">
+            <div className="bg-[#008069] p-3 shadow-sm flex items-center gap-3 z-10 text-white shrink-0">
+                <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full">
                     <ArrowLeftIcon className="h-6 w-6" />
                 </button>
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold shrink-0">
                         {ride ? ride.destination_address.charAt(0).toUpperCase() : 'G'}
                     </div>
-                    <div>
-                        <h1 className="font-semibold text-lg leading-tight">
+                    <div className="flex-1 min-w-0">
+                        <h1 className="font-semibold text-lg leading-tight truncate">
                             {ride ? `Trip to ${ride.destination_address.split(',')[0]}` : 'Loading...'}
                         </h1>
                         {ride?.driver && (
-                            <p className="text-xs text-white/80">Driver: {ride.driver.name}</p>
+                            <p className="text-xs text-white/80 truncate">Driver: {ride.driver.name}</p>
                         )}
                     </div>
                 </div>
