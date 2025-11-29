@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
+import PhoneCollectionModal from './PhoneCollectionModal';
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isInitialized, setIsInitialized] = useState(false);
-    const { token, loadUser, logout } = useAuthStore();
+    const { token, user, loadUser, logout } = useAuthStore();
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
 
     useEffect(() => {
         const initAuth = async () => {
             // Check for token in localStorage
             const storedToken = localStorage.getItem('auth_token');
 
-            if (storedToken && token) {
+            if (storedToken) {
                 try {
                     // Validate token by loading user data
                     await loadUser(storedToken);
@@ -28,6 +30,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         initAuth();
     }, []); // Run only once on mount
 
+    useEffect(() => {
+        if (isInitialized && user && !user.phone) {
+            setShowPhoneModal(true);
+        } else {
+            setShowPhoneModal(false);
+        }
+    }, [isInitialized, user]);
+
     // Don't render children until auth is initialized
     if (!isInitialized) {
         return (
@@ -40,5 +50,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         );
     }
 
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            <PhoneCollectionModal
+                isOpen={showPhoneModal}
+                onClose={() => setShowPhoneModal(false)}
+            />
+        </>
+    );
 }
