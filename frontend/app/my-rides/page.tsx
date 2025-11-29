@@ -128,7 +128,7 @@ export default function MyRidesPage() {
 
                     {/* Stats Cards */}
                     {stats && (
-                        <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
                             <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                                 <p className="text-xs sm:text-sm text-gray-600">Total Rides</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total_rides}</p>

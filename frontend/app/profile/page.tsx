@@ -346,25 +346,6 @@ export default function ProfilePage() {
 
           {/* Sidebar Actions */}
           <div className="space-y-6">
-            {/* Account Actions */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Account Actions</h3>
-              <div className="space-y-4">
-                <button
-                  onClick={handleLogout}
-                  className="w-full inline-flex items-center justify-center px-6 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
-                >
-                  <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" />
-                  Sign Out
-                </button>
-                <div className="text-center pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    Need help? <a href="#" className="text-blue-600 hover:text-blue-800 font-medium">Contact Support</a>
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Support Actions */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-6">Support & Feedback</h3>
@@ -396,6 +377,25 @@ export default function ProfilePage() {
                   <PhoneIcon className="h-5 w-5 mr-2" />
                   Request Call Back
                 </button>
+              </div>
+            </div>
+
+            {/* Account Actions */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Account Actions</h3>
+              <div className="space-y-4">
+                <button
+                  onClick={handleLogout}
+                  className="w-full inline-flex items-center justify-center px-6 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+                >
+                  <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" />
+                  Sign Out
+                </button>
+                <div className="text-center pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Need help? <a href="#" className="text-blue-600 hover:text-blue-800 font-medium">Contact Support</a>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
