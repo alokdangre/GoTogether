@@ -95,6 +95,7 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
 
                 // Show notification if message is from someone else
                 if (message.notification) {
+                    console.log('=== NOTIFICATION DEBUG ===');
                     console.log('Message has notification data:', message.notification);
 
                     const isMyMessage =
@@ -104,16 +105,31 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                     console.log('Is my message?', isMyMessage);
                     console.log('My ID:', myId);
                     console.log('Sender ID:', message.user_id || message.admin_id);
+                    console.log('Sender type:', message.sender_type);
                     console.log('Can show notifications?', notificationService.canShowNotifications());
+                    console.log('Notification permission:', Notification.permission);
 
                     if (!isMyMessage) {
-                        // Always show notification for messages from others (removed focus check for testing)
-                        console.log('Attempting to show notification...');
+                        console.log('>>> Attempting to show notification...');
 
-                        if (notificationService.canShowNotifications()) {
-                            const notification = notificationService.showNotification(
-                                message.notification.title,
-                                {
+                        // Request permission if not granted
+                        if (Notification.permission === 'default') {
+                            console.log('Requesting notification permission...');
+                            Notification.requestPermission().then(permission => {
+                                console.log('Permission result:', permission);
+                                if (permission === 'granted') {
+                                    showTheNotification();
+                                }
+                            });
+                        } else if (Notification.permission === 'granted') {
+                            showTheNotification();
+                        } else {
+                            console.error('❌ Notifications are blocked!');
+                        }
+
+                        function showTheNotification() {
+                            try {
+                                const notification = new Notification(message.notification.title, {
                                     body: message.notification.body,
                                     tag: `chat-${groupedRideId}`,
                                     icon: '/icon-192x192.png',
@@ -124,14 +140,24 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
                                         groupedRideId: groupedRideId,
                                         url: `/chat/${groupedRideId}`
                                     }
-                                }
-                            );
-                            console.log('Notification shown:', notification);
-                        } else {
-                            console.warn('Notification permission not granted!');
-                            console.log('Current permission:', Notification.permission);
+                                });
+
+                                notification.onclick = function () {
+                                    console.log('Notification clicked!');
+                                    window.focus();
+                                    window.location.href = `/chat/${groupedRideId}`;
+                                    notification.close();
+                                };
+
+                                console.log('✅ Notification shown!', notification);
+                            } catch (e) {
+                                console.error('❌ Error creating notification:', e);
+                            }
                         }
+                    } else {
+                        console.log('>>> Skipped: This is my own message');
                     }
+                    console.log('=== END NOTIFICATION DEBUG ===');
                 }
             } catch (e) {
                 console.error('Failed to parse message:', e);
@@ -166,27 +192,53 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
 
     // Test notification function
     const testNotification = () => {
-        console.log('Testing notification...');
+        console.log('=== TESTING NOTIFICATION ===');
         console.log('Permission:', Notification.permission);
+        console.log('Browser supports notifications:', 'Notification' in window);
+
+        if (!('Notification' in window)) {
+            alert('Your browser does not support notifications');
+            return;
+        }
 
         if (Notification.permission === 'granted') {
-            notificationService.showNotification('Test Notification', {
-                body: 'This is a test notification from GoTogether!',
-                tag: 'test'
+            console.log('✅ Permission granted, showing test notification...');
+            const notification = new Notification('Test Notification - GoTogether', {
+                body: 'Notifications are working! Click to open chat.',
+                icon: '/icon-192x192.png',
+                badge: '/icon-192x192.png',
+                tag: 'test',
+                requireInteraction: false,
+                data: {
+                    url: `/chat/${groupedRideId}`
+                }
             });
+
+            notification.onclick = function () {
+                console.log('Test notification clicked!');
+                window.focus();
+                window.location.href = `/chat/${groupedRideId}`;
+                notification.close();
+            };
+
+            console.log('✅ Test notification shown!');
         } else if (Notification.permission === 'default') {
+            console.log('⚠️ Permission not yet granted, requesting...');
             Notification.requestPermission().then(permission => {
                 console.log('Permission result:', permission);
                 if (permission === 'granted') {
-                    notificationService.showNotification('Test Notification', {
-                        body: 'Permission granted! Notifications will work now.',
-                        tag: 'test'
-                    });
+                    // Recursively call to show notification
+                    setTimeout(testNotification, 100);
+                } else {
+                    alert('Please allow notifications to use this feature');
                 }
             });
         } else {
-            alert('Notifications are blocked. Please enable them in your browser settings.');
+            console.error('❌ Notifications are blocked');
+            alert('Notifications are blocked. Please enable them in your browser settings.\n\n1. Click the lock/info icon in the address bar\n2. Find "Notifications"\n3. Change to "Allow"\n4. Refresh the page');
         }
+
+        console.log('=== END TEST ===');
     };
 
     // Scroll to bottom
