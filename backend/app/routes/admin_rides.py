@@ -10,6 +10,7 @@ from ..models.ride_request import RideRequest
 from ..models.grouped_ride import GroupedRide
 from ..models.ride_notification import RideNotification
 from ..models.driver import Driver
+from ..models.chat import ChatMessage
 from ..schemas.ride_request import RideRequestWithUser
 from ..schemas.grouped_ride import (
     GroupedRideCreate,
@@ -180,6 +181,12 @@ async def update_grouped_ride(
     
     # Update fields
     update_dict = update_data.dict(exclude_unset=True)
+    
+    # Check if status is being updated to completed
+    if update_dict.get("status") == "completed" and grouped_ride.status != "completed":
+        # Delete chat messages
+        db.query(ChatMessage).filter(ChatMessage.grouped_ride_id == ride_id).delete()
+        
     for field, value in update_dict.items():
         setattr(grouped_ride, field, value)
     

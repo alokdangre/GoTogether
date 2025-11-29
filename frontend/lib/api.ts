@@ -126,6 +126,14 @@ export const tripsApi = {
   },
 };
 
+// Chat API
+export const chatApi = {
+  getHistory: async (groupedRideId: string): Promise<any[]> => {
+    const response = await api.get(`/api/chat/${groupedRideId}/history`);
+    return response.data;
+  },
+};
+
 // Drivers API
 export const driversApi = {
   getProfile: async (): Promise<User> => {
