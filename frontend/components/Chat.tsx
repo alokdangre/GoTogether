@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { chatApi } from '@/lib/api';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
+import { notificationService } from '@/lib/notificationService';
 
 interface Message {
     id: string;
@@ -10,8 +11,14 @@ interface Message {
     user_name: string;
     created_at: string;
     message_type: string;
-    sender_type?: 'user' | 'admin'; // Added for new logic
-    admin_id?: string; // Added for new logic
+    sender_type?: 'user' | 'admin';
+    admin_id?: string;
+    notification?: {
+        title: string;
+        body: string;
+        sender_id: string;
+        sender_type: string;
+    };
 }
 
 interface ChatProps {
@@ -36,15 +43,6 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // We need to use the correct token for fetching history
-                // chatApi uses the global api instance which uses localStorage token
-                // If we are admin, we might need to pass headers manually or use a different API call
-                // For simplicity, if authToken is provided, we assume it's set in axios or we pass it
-
-                // Actually, api.ts uses interceptor reading from localStorage.
-                // If Admin, we might need to temporarily set it or use a custom request.
-                // Let's use fetch directly for custom token
-
                 const headers: any = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -67,7 +65,6 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             return;
         }
 
-        // Determine WS URL (handle https/wss and http/ws)
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         let wsUrl: string;
 
@@ -76,7 +73,6 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
         } else if (apiUrl.startsWith('http://')) {
             wsUrl = apiUrl.replace('http://', 'ws://');
         } else {
-            // Fallback: use current protocol
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             wsUrl = `${protocol}//${apiUrl}`;
         }
@@ -96,6 +92,36 @@ export default function Chat({ groupedRideId, fullScreen = false, authToken, cur
             try {
                 const message = JSON.parse(event.data);
                 setMessages((prev) => [...prev, message]);
+
+                // Show notification if message is from someone else and page is not focused
+                if (message.notification) {
+                    const isMyMessage =
+                        (message.sender_type === 'user' && message.user_id === myId) ||
+                        (message.sender_type === 'admin' && message.admin_id === myId);
+
+                    if (!isMyMessage) {
+                        // Check if page is not in focus or user is not on this chat page
+                        const shouldNotify = !document.hasFocus() || !window.location.pathname.includes(`/chat/${groupedRideId}`);
+
+                        if (shouldNotify && notificationService.canShowNotifications()) {
+                            notificationService.showNotification(
+                                message.notification.title,
+                                {
+                                    body: message.notification.body,
+                                    tag: `chat-${groupedRideId}`,
+                                    icon: '/icon-192x192.png',
+                                    badge: '/icon-192x192.png',
+                                    requireInteraction: false,
+                                    data: {
+                                        type: 'chat-message',
+                                        groupedRideId: groupedRideId,
+                                        url: `/chat/${groupedRideId}`
+                                    }
+                                }
+                            );
+                        }
+                    }
+                }
             } catch (e) {
                 console.error('Failed to parse message:', e);
             }

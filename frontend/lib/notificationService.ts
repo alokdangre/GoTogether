@@ -40,7 +40,7 @@ class PushNotificationService {
         return this.permission === 'granted';
     }
 
-    showNotification(title: string, options?: NotificationOptions) {
+    showNotification(title: string, options?: NotificationOptions & { data?: any }) {
         if (!this.canShowNotifications()) {
             console.warn('Notification permission not granted');
             return;
@@ -55,6 +55,12 @@ class PushNotificationService {
 
             notification.onclick = () => {
                 window.focus();
+
+                // Navigate to URL if provided in data
+                if (options?.data?.url) {
+                    window.location.href = options.data.url;
+                }
+
                 notification.close();
             };
 

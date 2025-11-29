@@ -170,10 +170,17 @@ async def websocket_endpoint(
                     "message_type": new_message.message_type,
                     "sender_type": new_message.sender_type,
                     "created_at": new_message.created_at.isoformat(),
-                    "user_name": sender_name
+                    "user_name": sender_name,
+                    "notification": {
+                        "title": f"New message in group",
+                        "body": f"{sender_name}: {content[:50]}{'...' if len(content) > 50 else ''}",
+                        "sender_id": str(actor["id"]),
+                        "sender_type": actor["type"]
+                    }
                 }
                 
                 await manager.broadcast(response, grouped_ride_id)
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, grouped_ride_id)
+
