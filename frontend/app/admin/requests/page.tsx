@@ -46,6 +46,11 @@ export default function AdminRequestsPage() {
         charged_price: '',
     });
 
+    // Merge state
+    const [activeTrips, setActiveTrips] = useState<any[]>([]);
+    const [showMergeModal, setShowMergeModal] = useState(false);
+    const [selectedTripId, setSelectedTripId] = useState('');
+
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -84,8 +89,21 @@ export default function AdminRequestsPage() {
             }
         };
 
+        const fetchActiveTrips = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await axios.get(`${apiUrl}/api/admin/trips?status=pending_acceptance`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setActiveTrips(response.data);
+            } catch (error) {
+                console.error('Failed to load active trips');
+            }
+        };
+
         fetchRequests();
         fetchDrivers();
+        fetchActiveTrips();
     }, [router]);
 
     const toggleSelection = (id: string) => {
@@ -154,6 +172,34 @@ export default function AdminRequestsPage() {
         }
     };
 
+    const handleMergeToTrip = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTripId) return;
+
+        const token = localStorage.getItem('admin_token');
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            await axios.post(
+                `${apiUrl}/api/admin/trips/${selectedTripId}/merge`,
+                { ride_request_ids: selectedRequests },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            toast.success('Requests merged successfully!');
+            setShowMergeModal(false);
+            setSelectedRequests([]);
+            setSelectedTripId('');
+
+            // Refresh requests
+            const response = await axios.get(`${apiUrl}/api/admin/ride-requests?limit=1000`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setRequests(response.data);
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || 'Failed to merge requests');
+        }
+    };
+
     const filteredRequests = requests.filter(
         (req) =>
             req.source_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,13 +224,22 @@ export default function AdminRequestsPage() {
                             <h1 className="text-3xl font-bold text-gray-900">Ride Requests</h1>
                         </div>
                         {selectedRequests.length > 0 && (
-                            <button
-                                onClick={handleOpenGroupModal}
-                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center"
-                            >
-                                <CheckSquare className="h-5 w-5 mr-2" />
-                                Group Selected ({selectedRequests.length})
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleOpenGroupModal}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center"
+                                >
+                                    <CheckSquare className="h-5 w-5 mr-2" />
+                                    Group Selected ({selectedRequests.length})
+                                </button>
+                                <button
+                                    onClick={() => setShowMergeModal(true)}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center"
+                                >
+                                    <CheckSquare className="h-5 w-5 mr-2" />
+                                    Merge to Trip
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -445,6 +500,55 @@ export default function AdminRequestsPage() {
                                     className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
                                 >
                                     Create Group
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Merge Modal */}
+            {showMergeModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-gray-900">Merge to Existing Trip</h2>
+                            <button onClick={() => setShowMergeModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleMergeToTrip} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Trip</label>
+                                <select
+                                    value={selectedTripId}
+                                    onChange={(e) => setSelectedTripId(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                >
+                                    <option value="">Select a trip...</option>
+                                    {activeTrips.map(trip => (
+                                        <option key={trip.id} value={trip.id}>
+                                            {new Date(trip.scheduled_time).toLocaleString()} - {trip.driver_name} ({trip.available_seats} seats left)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMergeModal(false)}
+                                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                >
+                                    Merge Requests
                                 </button>
                             </div>
                         </form>

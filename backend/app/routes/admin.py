@@ -16,7 +16,7 @@ from ..models.driver import Driver
 from ..models.grouped_ride import GroupedRide
 from ..models.ride_request import RideRequest
 from ..schemas.auth import AdminLogin, AdminToken, DriverCreate
-from ..schemas.grouped_ride import GroupedRideAdminCreate
+from ..schemas.grouped_ride import GroupedRideAdminCreate, GroupedRideMerge
 from ..schemas.user import User as UserSchema
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -469,6 +469,67 @@ async def create_grouped_ride(
     db.refresh(grouped_ride)
     
     return {"message": "Grouped ride created successfully", "id": str(grouped_ride.id)}
+
+
+@router.post("/trips/{grouped_ride_id}/merge")
+async def merge_requests_to_trip(
+    grouped_ride_id: str,
+    request: GroupedRideMerge,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Merge ride requests into an existing grouped ride"""
+    # Verify grouped ride exists
+    grouped_ride = db.query(GroupedRide).filter(GroupedRide.id == grouped_ride_id).first()
+    if not grouped_ride:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Grouped ride not found"
+        )
+        
+    # Verify requests exist and are pending
+    ride_requests = db.query(RideRequest).filter(RideRequest.id.in_(request.ride_request_ids)).all()
+    if len(ride_requests) != len(request.ride_request_ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more ride requests not found"
+        )
+        
+    for req in ride_requests:
+        if req.status != "pending":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Ride request {req.id} is not pending"
+            )
+            
+    # Update requests and create notifications
+    from ..models.ride_notification import RideNotification
+    from ..models.system_notification import SystemNotification
+    
+    for req in ride_requests:
+        req.grouped_ride_id = grouped_ride.id
+        req.status = "grouped"
+        
+        # Create ride assignment notification
+        notification = RideNotification(
+            user_id=req.user_id,
+            grouped_ride_id=grouped_ride.id,
+            notification_type="ride_assignment",
+            status="pending"
+        )
+        db.add(notification)
+        
+        # Create system notification about group chat
+        chat_notification = SystemNotification(
+            user_id=req.user_id,
+            title="Group Chat Available",
+            message=f"Your ride has been grouped! You can now chat with other passengers and the driver. Please accept or reject the ride assignment."
+        )
+        db.add(chat_notification)
+        
+    db.commit()
+    
+    return {"message": "Requests merged successfully"}
 
 
 @router.get("/trips")

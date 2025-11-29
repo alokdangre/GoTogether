@@ -26,6 +26,11 @@ class GroupedRideAdminCreate(BaseModel):
     charged_price: float = Field(..., gt=0)
 
 
+class GroupedRideMerge(BaseModel):
+    ride_request_ids: List[uuid.UUID] = Field(..., min_items=1)
+
+
+
 class GroupedRide(GroupedRideBase):
     id: uuid.UUID
     admin_id: uuid.UUID
