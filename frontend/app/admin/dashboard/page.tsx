@@ -12,6 +12,7 @@ interface DashboardStats {
     totalTrips: number;
     activeTrips: number;
     totalRequests: number;
+    totalSupportRequests: number;
 }
 
 export default function AdminDashboardPage() {
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
         totalTrips: 0,
         activeTrips: 0,
         totalRequests: 0,
+        totalSupportRequests: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -38,11 +40,12 @@ export default function AdminDashboardPage() {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const headers = { Authorization: `Bearer ${token}` };
 
-                const [usersRes, driversRes, tripsRes, requestsRes] = await Promise.all([
+                const [usersRes, driversRes, tripsRes, requestsRes, supportRes] = await Promise.all([
                     axios.get(`${apiUrl}/api/admin/users?limit=1000`, { headers }),
                     axios.get(`${apiUrl}/api/admin/drivers?limit=1000`, { headers }),
                     axios.get(`${apiUrl}/api/admin/trips?limit=1000`, { headers }),
                     axios.get(`${apiUrl}/api/admin/ride-requests?limit=1000`, { headers }),
+                    axios.get(`${apiUrl}/api/support/admin/requests`, { headers }),
                 ]);
 
                 setStats({
@@ -51,6 +54,7 @@ export default function AdminDashboardPage() {
                     totalTrips: tripsRes.data.length,
                     activeTrips: tripsRes.data.filter((t: any) => t.status === 'active').length,
                     totalRequests: requestsRes.data.length,
+                    totalSupportRequests: supportRes.data.length,
                 });
             } catch (error: any) {
                 if (error.response?.status === 401) {
@@ -81,6 +85,13 @@ export default function AdminDashboardPage() {
             icon: MapPin,
             color: 'from-pink-500 to-pink-600',
             link: '/admin/requests',
+        },
+        {
+            title: 'Support Requests',
+            value: stats.totalSupportRequests,
+            icon: TrendingUp,
+            color: 'from-orange-500 to-orange-600',
+            link: '/admin/support',
         },
         {
             title: 'Total Users',
@@ -128,7 +139,7 @@ export default function AdminDashboardPage() {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                     {statCards.map((card) => {
                         const Icon = card.icon;
                         return (
@@ -165,9 +176,20 @@ export default function AdminDashboardPage() {
                         >
                             <div className="flex items-center">
                                 <MapPin className="h-5 w-5 text-pink-600 mr-3" />
-                                <span className="font-medium text-gray-900">View Requests</span>
+                                <span className="font-medium text-gray-900">View Ride Requests</span>
                             </div>
                             <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
+                        </button>
+
+                        <button
+                            onClick={() => router.push('/admin/support')}
+                            className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group"
+                        >
+                            <div className="flex items-center">
+                                <TrendingUp className="h-5 w-5 text-orange-600 mr-3" />
+                                <span className="font-medium text-gray-900">Support Requests</span>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
                         </button>
 
                         <button
@@ -190,17 +212,6 @@ export default function AdminDashboardPage() {
                                 <span className="font-medium text-gray-900">Manage Users</span>
                             </div>
                             <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                        </button>
-
-                        <button
-                            onClick={() => router.push('/admin/trips')}
-                            className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
-                        >
-                            <div className="flex items-center">
-                                <MapPin className="h-5 w-5 text-purple-600 mr-3" />
-                                <span className="font-medium text-gray-900">View All Trips</span>
-                            </div>
-                            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
                         </button>
                     </div>
                 </div>
