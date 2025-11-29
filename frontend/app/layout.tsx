@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   themeColor: '#0ea5e9',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: '/icon.svg',
+    apple: '/icon.svg',
   },
   openGraph: {
     title: 'GoTogether - Share Rides, Split Costs',
