@@ -22,7 +22,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, token } = useAuthStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,7 +70,6 @@ export default function ProfilePage() {
     }
 
     try {
-      const token = localStorage.getItem('token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/support/`, {
         type,
@@ -92,7 +91,6 @@ export default function ProfilePage() {
 
   const handleCallRequest = async () => {
     try {
-      const token = localStorage.getItem('token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/support/`, {
         type: 'call',

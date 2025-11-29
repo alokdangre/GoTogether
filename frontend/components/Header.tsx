@@ -12,7 +12,7 @@ import { useAuthStore } from '@/lib/store';
 
 export default function Header() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, token } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -28,7 +28,6 @@ export default function Header() {
     }
 
     try {
-      const token = localStorage.getItem('token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/support/`, {
         type,
@@ -51,7 +50,6 @@ export default function Header() {
 
   const handleCallRequest = async () => {
     try {
-      const token = localStorage.getItem('token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/support/`, {
         type: 'call',
