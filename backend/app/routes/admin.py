@@ -147,45 +147,18 @@ async def notify_user_phone(
             detail="User already has a phone number"
         )
         
-    # Send email
-    from ..core.email import send_email
+    # Create System Notification
+    from ..models.system_notification import SystemNotification
     
-    subject = "Action Required: Add your phone number to GoTogether"
-    text_body = f"""Hi {user.name},
+    notification = SystemNotification(
+        user_id=user.id,
+        title="Phone Number Required",
+        message="Please add your phone number to your profile to coordinate rides."
+    )
+    db.add(notification)
+    db.commit()
     
-We noticed you haven't added your phone number to your GoTogether account yet.
-A phone number is required to coordinate rides with drivers and other passengers.
-
-Please log in to your account and add your phone number.
-
-Best regards,
-The GoTogether Team
-"""
-    
-    html_body = f"""
-    <html>
-        <body>
-            <h2>Hi {user.name},</h2>
-            <p>We noticed you haven't added your phone number to your GoTogether account yet.</p>
-            <p>A phone number is required to coordinate rides with drivers and other passengers.</p>
-            <p>Please log in to your account and add your phone number.</p>
-            <br>
-            <p>Best regards,<br>The GoTogether Team</p>
-        </body>
-    </html>
-    """
-    
-    try:
-        await send_email(user.email, subject, text_body, html_body)
-    except Exception as e:
-        # Log error
-        print(f"Failed to send email: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send email notification"
-        )
-        
-    return {"message": f"Notification sent to {user.email}"}
+    return {"message": f"App notification sent to {user.name}"}
 
 
 @router.get("/drivers")

@@ -7,7 +7,8 @@ import { NotificationWithDetails } from '@/types';
 
 export default function NotificationsPage() {
     const router = useRouter();
-    const [notifications, setNotifications] = useState<NotificationWithDetails[]>([]);
+    const [rideNotifications, setRideNotifications] = useState<NotificationWithDetails[]>([]);
+    const [systemNotifications, setSystemNotifications] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -21,7 +22,15 @@ export default function NotificationsPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            setNotifications(data);
+
+            // Handle both old list format and new object format
+            if (Array.isArray(data)) {
+                setRideNotifications(data);
+                setSystemNotifications([]);
+            } else {
+                setRideNotifications(data.ride_notifications || []);
+                setSystemNotifications(data.system_notifications || []);
+            }
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
@@ -60,8 +69,23 @@ export default function NotificationsPage() {
         }
     };
 
-    const pendingNotifications = notifications.filter(n => n.status === 'pending');
-    const respondedNotifications = notifications.filter(n => n.status !== 'pending');
+    const markSystemRead = async (notificationId: string) => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/system/${notificationId}/read`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchNotifications();
+        } catch (error) {
+            console.error('Error marking read:', error);
+        }
+    };
+
+    const pendingNotifications = rideNotifications.filter(n => n.status === 'pending');
+    const respondedNotifications = rideNotifications.filter(n => n.status !== 'pending');
+    const unreadSystemNotifications = systemNotifications.filter(n => !n.is_read);
+    const readSystemNotifications = systemNotifications.filter(n => n.is_read);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -81,8 +105,8 @@ export default function NotificationsPage() {
                             <BellIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-3" />
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Notifications</h1>
-                                {pendingNotifications.length > 0 && (
-                                    <p className="text-sm text-gray-600">{pendingNotifications.length} pending</p>
+                                {(pendingNotifications.length + unreadSystemNotifications.length) > 0 && (
+                                    <p className="text-sm text-gray-600">{pendingNotifications.length + unreadSystemNotifications.length} new</p>
                                 )}
                             </div>
                         </div>
@@ -98,6 +122,32 @@ export default function NotificationsPage() {
                     </div>
                 ) : (
                     <>
+                        {/* System Notifications */}
+                        {unreadSystemNotifications.length > 0 && (
+                            <div className="mb-8">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Important Updates</h2>
+                                <div className="space-y-4">
+                                    {unreadSystemNotifications.map((notification) => (
+                                        <div key={notification.id} className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-yellow-500">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-1">{notification.title}</h3>
+                                                    <p className="text-gray-600 mb-3">{notification.message}</p>
+                                                    <p className="text-xs text-gray-400">{new Date(notification.created_at).toLocaleString()}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => markSystemRead(notification.id)}
+                                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                                >
+                                                    Mark as Read
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Pending Notifications */}
                         {pendingNotifications.length > 0 && (
                             <div className="mb-8">
@@ -214,8 +264,28 @@ export default function NotificationsPage() {
                             </div>
                         )}
 
+                        {/* Read System Notifications */}
+                        {readSystemNotifications.length > 0 && (
+                            <div className="mt-8">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Previous Updates</h2>
+                                <div className="space-y-3">
+                                    {readSystemNotifications.map((notification) => (
+                                        <div key={notification.id} className="bg-gray-50 rounded-xl p-4 shadow-sm border border-gray-200">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="text-md font-semibold text-gray-700 mb-1">{notification.title}</h3>
+                                                    <p className="text-gray-500 text-sm mb-1">{notification.message}</p>
+                                                    <p className="text-xs text-gray-400">{new Date(notification.created_at).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Empty State */}
-                        {notifications.length === 0 && (
+                        {rideNotifications.length === 0 && systemNotifications.length === 0 && (
                             <div className="text-center py-16 bg-white rounded-2xl">
                                 <BellIcon className="mx-auto h-16 w-16 text-gray-400" />
                                 <h3 className="mt-4 text-lg font-semibold text-gray-900">No notifications</h3>

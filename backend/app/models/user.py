@@ -29,6 +29,7 @@ class User(BaseModel):
     # Relationships
     ride_requests = relationship("RideRequest", back_populates="user")
     notifications = relationship("RideNotification", back_populates="user")
+    system_notifications = relationship("SystemNotification", back_populates="user")
     ratings_given = relationship("Rating", foreign_keys="Rating.user_id", back_populates="user")
     support_requests = relationship("SupportRequest", back_populates="user")
     

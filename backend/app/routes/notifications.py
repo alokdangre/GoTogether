@@ -13,25 +13,60 @@ from ..models.driver import Driver
 from ..schemas.notification import (
     Notification,
     NotificationResponse,
-    NotificationWithDetails
+    NotificationWithDetails,
+    NotificationsList,
+    SystemNotification as SystemNotificationSchema
 )
+from ..models.system_notification import SystemNotification
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
-@router.get("", response_model=List[NotificationWithDetails])
+@router.get("", response_model=NotificationsList)
 async def get_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user's notifications"""
-    notifications = db.query(RideNotification).options(
+    ride_notifications = db.query(RideNotification).options(
         joinedload(RideNotification.grouped_ride).joinedload(GroupedRide.driver)
     ).filter(
         RideNotification.user_id == current_user.id
     ).order_by(RideNotification.sent_at.desc()).all()
     
-    return [NotificationWithDetails.from_orm(notif) for notif in notifications]
+    system_notifications = db.query(SystemNotification).filter(
+        SystemNotification.user_id == current_user.id
+    ).order_by(SystemNotification.created_at.desc()).all()
+    
+    return {
+        "ride_notifications": [NotificationWithDetails.from_orm(notif) for notif in ride_notifications],
+        "system_notifications": [SystemNotificationSchema.from_orm(notif) for notif in system_notifications]
+    }
+
+
+@router.post("/system/{notification_id}/read", response_model=SystemNotificationSchema)
+async def mark_system_notification_read(
+    notification_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mark system notification as read"""
+    notification = db.query(SystemNotification).filter(
+        SystemNotification.id == notification_id,
+        SystemNotification.user_id == current_user.id
+    ).first()
+    
+    if not notification:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notification not found"
+        )
+    
+    notification.is_read = True
+    db.commit()
+    db.refresh(notification)
+    
+    return SystemNotificationSchema.from_orm(notification)
 
 
 @router.put("/{notification_id}/accept", response_model=Notification)

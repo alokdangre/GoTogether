@@ -31,3 +31,20 @@ class NotificationWithDetails(Notification):
 
 class NotificationResponse(BaseModel):
     action: str  # "accept" or "reject"
+
+
+class SystemNotification(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    title: str
+    message: str
+    is_read: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class NotificationsList(BaseModel):
+    ride_notifications: list[NotificationWithDetails]
+    system_notifications: list[SystemNotification]
