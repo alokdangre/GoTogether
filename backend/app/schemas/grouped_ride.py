@@ -10,6 +10,10 @@ class GroupedRideBase(BaseModel):
     pickup_location: Optional[str] = Field(None, max_length=500)
     actual_price: Optional[float] = Field(None, gt=0)
     charged_price: Optional[float] = Field(None, gt=0)
+    total_seats: int = Field(default=4, ge=1, le=20)
+    is_railway_station_trip: bool = Field(default=False)
+    auto_created: bool = Field(default=False)
+
 
 
 class GroupedRideCreate(BaseModel):
@@ -24,6 +28,8 @@ class GroupedRideAdminCreate(BaseModel):
     pickup_location: str = Field(..., max_length=500)
     destination_address: str = Field(..., max_length=500)
     charged_price: float = Field(..., gt=0)
+    total_seats: int = Field(default=4, ge=1, le=20)
+
 
 
 class GroupedRideMerge(BaseModel):

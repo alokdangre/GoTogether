@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -22,6 +22,13 @@ class GroupedRide(BaseModel):
     # Pricing for savings calculation
     actual_price = Column(Float, nullable=True)  # What it would normally cost
     charged_price = Column(Float, nullable=True)  # What users are charged
+    
+    # Seat management (excluding driver)
+    total_seats = Column(Integer, default=4, nullable=False)
+    
+    # Railway station trip flags
+    is_railway_station_trip = Column(Boolean, default=False, nullable=False)
+    auto_created = Column(Boolean, default=False, nullable=False)
     
     # Status: pending_acceptance, confirmed, in_progress, completed, cancelled
     status = Column(String(20), default="pending_acceptance", index=True)

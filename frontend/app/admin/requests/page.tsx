@@ -26,7 +26,9 @@ interface RideRequest {
     created_at: string;
     is_railway_station: boolean;
     train_time?: string;
+    grouped_ride_id?: string;
 }
+
 
 export default function AdminRequestsPage() {
     const router = useRouter();

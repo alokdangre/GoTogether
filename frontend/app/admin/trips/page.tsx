@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Search, Calendar } from 'lucide-react';
+import { MapPin, Search, Calendar, Trash2, Train } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -13,9 +13,12 @@ interface Trip {
     destination: string;
     scheduled_time: string;
     total_seats: number;
+    occupied_seats: number;
     available_seats: number;
     fare_per_seat: number;
     status: string;
+    is_railway_station_trip: boolean;
+    auto_created: boolean;
     created_at: string;
 }
 
@@ -26,6 +29,7 @@ export default function AdminTripsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
@@ -59,6 +63,23 @@ export default function AdminTripsPage() {
 
         fetchTrips();
     }, [router, statusFilter, dateFilter]);
+
+    const handleDeleteTrip = async (tripId: string) => {
+        try {
+            const token = localStorage.getItem('admin_token');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+            await axios.delete(`${apiUrl}/api/admin/trips/${tripId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            toast.success('Trip deleted successfully');
+            setTrips(trips.filter(t => t.id !== tripId));
+            setDeleteConfirmId(null);
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || 'Failed to delete trip');
+        }
+    };
 
     const filteredTrips = trips.filter(
         (trip) =>
@@ -134,7 +155,17 @@ export default function AdminTripsPage() {
                         <div className="col-span-full text-center py-12 text-gray-500">No trips found</div>
                     ) : (
                         filteredTrips.map((trip) => (
-                            <div key={trip.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden">
+                            <div key={trip.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden relative">
+                                {/* Railway Station Badge */}
+                                {trip.is_railway_station_trip && (
+                                    <div className="absolute top-4 right-4 z-10">
+                                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-sm">
+                                            <Train className="h-3 w-3" />
+                                            Railway
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Status Bar */}
                                 <div className={`h-2 ${trip.status === 'active' ? 'bg-green-500' :
                                     trip.status === 'completed' ? 'bg-blue-500' :
@@ -177,9 +208,15 @@ export default function AdminTripsPage() {
                                         </div>
                                         <div>
                                             <p className="text-xs text-gray-500">Seats</p>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {trip.available_seats}/{trip.total_seats}
+                                            <p className={`text-sm font-medium ${trip.available_seats === 0 ? 'text-red-600' :
+                                                    trip.available_seats < trip.total_seats / 2 ? 'text-orange-600' :
+                                                        'text-green-600'
+                                                }`}>
+                                                {trip.occupied_seats}/{trip.total_seats} occupied
                                             </p>
+                                            {trip.auto_created && (
+                                                <p className="text-xs text-purple-600 mt-1">Auto-created</p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -192,7 +229,7 @@ export default function AdminTripsPage() {
                                             }`}>
                                             {trip.status}
                                         </span>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-3">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -200,9 +237,42 @@ export default function AdminTripsPage() {
                                                 }}
                                                 className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
                                             >
-                                                <span className="text-lg">💬</span> Chat
+                                                <span className="text-lg">💬</span>
                                             </button>
-                                            <span className="text-lg font-bold text-purple-600">
+                                            {deleteConfirmId === trip.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteTrip(trip.id);
+                                                        }}
+                                                        className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                                    >
+                                                        Confirm
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteConfirmId(null);
+                                                        }}
+                                                        className="text-xs px-2 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteConfirmId(trip.id);
+                                                    }}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Delete trip"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                            <span className="text-sm font-bold text-purple-600">
                                                 ₹{trip.fare_per_seat}
                                             </span>
                                         </div>

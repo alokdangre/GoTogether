@@ -44,7 +44,42 @@ async def create_ride_request(
     db.commit()
     db.refresh(ride_request)
     
+    # Auto-grouping for railway station trips
+    if ride_request.is_railway_station:
+        from ..utils.auto_grouping import auto_group_railway_station_request
+        from ..models.admin import Admin
+        
+        # Get system admin (first admin or create one)
+        system_admin = db.query(Admin).first()
+        
+        if system_admin:
+            try:
+                grouped_ride, status_msg = auto_group_railway_station_request(
+                    db,
+                    ride_request,
+                    str(system_admin.id)
+                )
+                
+                if grouped_ride:
+                    db.commit()
+                    # Refresh to get updated relations
+                    db.refresh(ride_request)
+            except Exception as e:
+                # Log error but don't fail the request creation
+                print(f"Auto-grouping error: {str(e)}")
+                db.rollback()
+                # Create a system notification about the error for admins
+                from ..models.system_notification import SystemNotification
+                admin_notification = SystemNotification(
+                    user_id=current_user.id,
+                    title="Ride Request Created",
+                    message="Your railway station ride request has been created. An admin will group your ride shortly."
+                )
+                db.add(admin_notification)
+                db.commit()
+    
     return RideRequestSchema.from_orm(ride_request)
+
 
 
 @router.get("/my-requests", response_model=List[RideRequestSchema])

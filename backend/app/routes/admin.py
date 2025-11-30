@@ -314,16 +314,17 @@ async def list_drivers(
     return result
 
 
+
 @router.patch("/drivers/{driver_id}")
 async def update_driver(
     driver_id: str,
-    is_verified: Optional[bool] = None,
-    is_active: Optional[bool] = None,
-    availability_status: Optional[str] = None,
+    driver_update: "DriverUpdate",
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
     """Update driver details (admin only)"""
+    from ..schemas.driver import DriverUpdate
+    
     driver = db.query(Driver).filter(Driver.id == driver_id).first()
     if not driver:
         raise HTTPException(
@@ -331,25 +332,79 @@ async def update_driver(
             detail="Driver not found"
         )
     
-    if is_verified is not None:
-        driver.is_verified = is_verified
-        if is_verified:
-            from datetime import datetime
-            driver.verified_at = datetime.utcnow()
+    # Update fields if provided
+    if driver_update.name is not None:
+        driver.name = driver_update.name
     
-    if is_active is not None:
-        driver.is_active = is_active
-        if not is_active:
-            from datetime import datetime
-            driver.deactivated_at = datetime.utcnow()
-            
-    if availability_status:
-        driver.availability_status = availability_status
+    if driver_update.phone is not None:
+        # Check for duplicate phone
+        existing = db.query(Driver).filter(
+            Driver.phone == driver_update.phone,
+            Driver.id != driver_id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Phone number already in use"
+            )
+        driver.phone = driver_update.phone
+    
+    if driver_update.email is not None:
+        # Check for duplicate email
+        if driver_update.email:  # Only check if not empty
+            existing = db.query(Driver).filter(
+                Driver.email == driver_update.email,
+                Driver.id != driver_id
+            ).first()
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already in use"
+                )
+        driver.email = driver_update.email if driver_update.email else None
+    
+    if driver_update.license_number is not None:
+        driver.license_number = driver_update.license_number if driver_update.license_number else None
+    
+    if driver_update.vehicle_type is not None:
+        driver.vehicle_type = driver_update.vehicle_type if driver_update.vehicle_type else None
+    
+    if driver_update.vehicle_make is not None:
+        driver.vehicle_make = driver_update.vehicle_make if driver_update.vehicle_make else None
+    
+    if driver_update.vehicle_model is not None:
+        driver.vehicle_model = driver_update.vehicle_model if driver_update.vehicle_model else None
+    
+    if driver_update.vehicle_color is not None:
+        driver.vehicle_color = driver_update.vehicle_color if driver_update.vehicle_color else None
+    
+    if driver_update.vehicle_plate_number is not None:
+        # Check for duplicate plate number
+        if driver_update.vehicle_plate_number:
+            existing = db.query(Driver).filter(
+                Driver.vehicle_plate_number == driver_update.vehicle_plate_number,
+                Driver.id != driver_id
+            ).first()
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Vehicle plate number already in use"
+                )
+        driver.vehicle_plate_number = driver_update.vehicle_plate_number if driver_update.vehicle_plate_number else None
     
     db.commit()
     db.refresh(driver)
     
-    return {"message": "Driver updated successfully"}
+    return {
+        "message": "Driver updated successfully",
+        "driver": {
+            "id": str(driver.id),
+            "name": driver.name,
+            "phone": driver.phone,
+            "email": driver.email,
+        }
+    }
+
 
 
 @router.get("/ride-requests")
@@ -386,10 +441,12 @@ async def list_ride_requests(
             "created_at": req.created_at.isoformat(),
             "is_railway_station": req.is_railway_station,
             "train_time": req.train_time.isoformat() if req.train_time else None,
+            "grouped_ride_id": str(req.grouped_ride_id) if req.grouped_ride_id else None,
         }
         result.append(req_data)
     
     return result
+
 
 
 
@@ -433,11 +490,17 @@ async def create_grouped_ride(
         pickup_time=request.pickup_time,
         pickup_location=request.pickup_location,
         charged_price=request.charged_price,
+        total_seats=request.total_seats,
+        is_railway_station_trip=False,  # Admin-created trips are not auto-created
+        auto_created=False,
         status="pending_acceptance"
     )
     
     db.add(grouped_ride)
     db.flush() # Get ID
+    
+    # Update driver stats
+    driver.assigned_rides_count += 1
     
     
     # Update requests and create notifications
@@ -557,6 +620,9 @@ async def list_rides(
     
     result = []
     for ride in rides:
+        occupied_seats = len(ride.ride_requests) if ride.ride_requests else 0
+        available_seats = ride.total_seats - occupied_seats
+        
         ride_data = {
             "id": str(ride.id),
             "driver_id": str(ride.driver_id) if ride.driver_id else None,
@@ -564,15 +630,19 @@ async def list_rides(
             "pickup_location": ride.pickup_location,
             "destination": ride.destination_address,
             "scheduled_time": ride.pickup_time.isoformat() if ride.pickup_time else None,
-            "total_seats": 4,  # Default to 4 for now
-            "available_seats": 4 - len(ride.ride_requests) if ride.ride_requests else 4,
+            "total_seats": ride.total_seats,
+            "occupied_seats": occupied_seats,
+            "available_seats": available_seats,
             "fare_per_seat": float(ride.charged_price) if ride.charged_price else None,
             "status": ride.status,
+            "is_railway_station_trip": ride.is_railway_station_trip,
+            "auto_created": ride.auto_created,
             "created_at": ride.created_at.isoformat(),
         }
         result.append(ride_data)
     
     return result
+
 
 
 @router.get("/trips/{ride_id}")
@@ -604,6 +674,56 @@ async def get_ride(
     }
     
     return ride_data
+
+
+@router.delete("/trips/{trip_id}")
+async def delete_trip(
+    trip_id: str,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Delete a grouped ride (admin only)"""
+    grouped_ride = db.query(GroupedRide).filter(GroupedRide.id == trip_id).first()
+    if not grouped_ride:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trip not found"
+        )
+    
+    # Store driver info before deletion for stat update
+    driver_id = grouped_ride.driver_id
+    
+    # Get all associated ride requests
+    affected_users = []
+    if grouped_ride.ride_requests:
+        for req in grouped_ride.ride_requests:
+            affected_users.append(req.user_id)
+            # Set ride requests back to pending so they can be re-grouped
+            req.grouped_ride_id = None
+            req.status = "pending"
+    
+    # Delete the grouped ride (notifications will cascade delete)
+    db.delete(grouped_ride)
+    
+    # Update driver stats
+    if driver_id:
+        driver = db.query(Driver).filter(Driver.id == driver_id).first()
+        if driver and driver.assigned_rides_count > 0:
+            driver.assigned_rides_count -= 1
+    
+    # Send notifications to affected users
+    from ..models.system_notification import SystemNotification
+    for user_id in affected_users:
+        notification = SystemNotification(
+            user_id=user_id,
+            title="Trip Cancelled",
+            message="Your grouped trip has been cancelled by the admin. Your ride request has been reset to pending and will be re-grouped."
+        )
+        db.add(notification)
+    
+    db.commit()
+    
+    return {"message": "Trip deleted successfully", "affected_users": len(affected_users)}
 
 
 # Admin user management endpoints
